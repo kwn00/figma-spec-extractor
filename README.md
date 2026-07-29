@@ -19,13 +19,6 @@
 npx skills add kwn00/figma-spec-extractor
 ```
 
-Claude Code 플러그인으로:
-
-```
-/plugin marketplace add kwn00/figma-spec-extractor
-/plugin install figma-spec-extractor
-```
-
 ## 필요한 것
 
 Figma MCP 서버 **또는** Figma REST API 토큰.
@@ -60,6 +53,7 @@ https://figma.com/design/abc123/서비스?node-id=45-678
 - [ ] OpenAPI 스펙 대조 — 화면에 있는데 API에 없는 필드 탐지
 - [ ] 프레임 자동 그룹핑 정확도 개선
 - [ ] 영어판
+- [ ] Claude Code 플러그인 매니페스트 — 스킬이 여러 개가 되거나 훅·MCP를 묶어 배포할 때
 
 ## 라이선스
 
