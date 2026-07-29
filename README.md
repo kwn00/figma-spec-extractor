@@ -1,60 +1,63 @@
 # figma-spec-extractor
 
-피그마 페이지를 읽어 **개발 착수 가능한 기획서**로 바꾸는 에이전트 스킬.
+An agent skill that reads a Figma page and turns it into a spec a developer can start building from.
 
-기존 Figma MCP는 "이 프레임을 어떻게 그릴까"를 해결한다. 이 스킬은 그 앞 단계 —
-**"이 기능이 뭐고, 뭐가 아직 정의 안 됐나"** — 를 해결한다.
+Figma MCP answers "how do I render this frame." This skill handles the step before that —
+**"what is this feature, and what has nobody defined yet?"**
 
-## 왜
+## Why
 
-디자인 핸드오프가 깨지는 지점은 픽셀이 아니다. 기획이 화면 여기저기 흩어져 있고,
-빈 목록·에러·권한 없음 같은 상태는 애초에 아무도 그리지 않는다.
-개발자는 3주 뒤에 그걸 발견한다.
+Design handoff doesn't break at the pixels. It breaks because the product thinking is scattered
+across screens, and because nobody ever drew the empty list, the error, or the permission denial.
+The developer finds out three weeks later.
 
-이 스킬의 출력에서 가장 중요한 건 화면 요약이 아니라 **`확인 필요` 섹션**이다.
+The most important part of this skill's output is not the screen summaries. It's the **`Needs Answer`** section.
 
-## 설치
+## Install
 
 ```bash
 npx skills add kwn00/figma-spec-extractor
 ```
 
-## 필요한 것
+## Requirements
 
-Figma MCP 서버 **또는** Figma REST API 토큰.
+A Figma MCP server **or** a Figma REST API token.
 
-## 사용
-
-```
-이 페이지 기획서로 뽑아줘
-https://figma.com/design/abc123/서비스?node-id=45-678
-```
-
-## 출력
+## Usage
 
 ```
-{기능명}-spec.md
-├── 개요
-├── 화면 흐름
-├── 화면별 상세 (표시 데이터 / 액션 / 정의된 상태 / 미정의 상태)
-├── 데이터 요구사항      ← 백엔드와 대조할 목록
-├── 확인 필요            ← 🔴 블로커 / 🟡 예외 / 🟢 권장
-└── 추출 노트
+Pull a spec out of this page
+https://figma.com/design/abc123/service?node-id=45-678
 ```
 
-## 한계
+The spec comes back in whatever language you asked in. Text quoted from the design —
+screen names, button labels, data values — stays exactly as it appears in the file,
+so you can still search for it in Figma.
 
-- 피그마에 없는 건 만들어내지 않는다. 추측 대신 `확인 필요`로 보낸다
-- 레이어 이름이 `Frame 12`뿐인 파일은 정확도가 떨어진다. 그 경우 근거가 약하다고 명시한다
-- 픽셀·색상·폰트는 다루지 않는다. 그건 Figma MCP가 코드 생성 시점에 직접 넘긴다
+## Output
 
-## 로드맵
+```
+{feature-name}-spec.md
+├── Overview
+├── Flow
+├── Screens (data displayed / actions / states defined / states not defined)
+├── Data requirements   ← the list to check against your backend
+├── Needs Answer        ← 🔴 blockers / 🟡 edge cases / 🟢 worth confirming
+└── Extraction notes
+```
 
-- [ ] OpenAPI 스펙 대조 — 화면에 있는데 API에 없는 필드 탐지
-- [ ] 프레임 자동 그룹핑 정확도 개선
-- [ ] 영어판
-- [ ] Claude Code 플러그인 매니페스트 — 스킬이 여러 개가 되거나 훅·MCP를 묶어 배포할 때
+## Limits
 
-## 라이선스
+- It doesn't invent what isn't in Figma. Instead of guessing, it sends the question to `Needs Answer`
+- Accuracy drops on files where every layer is named `Frame 12`. In that case it says the evidence is weak
+- It doesn't touch pixels, colors, or fonts. Figma MCP hands those over directly at code-generation time
+
+## Roadmap
+
+- [ ] OpenAPI spec cross-check — find fields on screen that no API provides
+- [ ] Better automatic frame grouping
+- [ ] Claude Code plugin manifest — once there are several skills, or hooks/MCP to bundle
+
+## License
 
 MIT

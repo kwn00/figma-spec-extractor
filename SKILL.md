@@ -1,160 +1,179 @@
 ---
 name: figma-spec-extractor
-description: 피그마 페이지 전체를 읽어 기능 단위 기획서(마크다운)로 추출하고, 기획에서 빠진 상태·예외·데이터를 "확인 필요" 목록으로 뽑아낸다. 사용자가 피그마 URL이나 파일 키를 주면서 기획서·명세서·스펙·PRD·요구사항 정리를 요청하거나, 디자인을 코드로 옮기기 전에 컨텍스트를 정리하려 하거나, "이 화면들 정리해줘" / "피그마 보고 스펙 뽑아줘" / "무슨 기능인지 파악해줘" 같은 말을 할 때 반드시 사용한다. 프레임 하나가 아니라 여러 화면에 흩어진 기능을 다룰 때 특히 유용하다. 피그마가 언급되고 결과물이 "코드"가 아니라 "문서·정리·이해"에 가깝다면 일단 이 스킬을 사용한다.
+description: Reads a whole Figma page and extracts it into a feature-level product spec (markdown), then surfaces every state, exception, and data requirement the design never defined as a "Needs Answer" list. Use this whenever someone gives a Figma URL or file key and asks for a spec, PRD, requirements write-up, or documentation, or wants context assembled before turning a design into code. Especially useful when one feature is scattered across many frames rather than contained in a single one. If Figma is mentioned and the deliverable is closer to "a document, an understanding" than to "code", reach for this skill first. Also triggers on Korean requests such as "이 화면들 정리해줘", "피그마 보고 스펙 뽑아줘", "무슨 기능인지 파악해줘", "기획서로 뽑아줘".
 ---
 
 # Figma Spec Extractor
 
-피그마 페이지를 읽어 개발 착수 가능한 기획서로 바꾼다.
+Turn a Figma page into a spec a developer can actually start building from.
 
-## 이 스킬이 실제로 해결하는 것
+## What this skill really solves
 
-피그마는 **그려진 것**만 담는다. 그리지 않은 것 — 빈 목록일 때, 통신이 실패했을 때, 권한이 없을 때 — 은 파일 어디에도 없다. 그런데 개발은 그걸 반드시 알아야 진행된다.
+Figma holds **only what was drawn**. What was not drawn — the empty list, the failed request, the user without permission — is nowhere in the file. Yet development cannot proceed without knowing it.
 
-그래서 이 스킬의 출력에서 가장 중요한 부분은 화면 설명이 아니라 **`## 확인 필요`** 섹션이다. 사용자가 진짜로 얻는 가치는 "3주 뒤에 발견할 빵꾸를 지금 아는 것"이다. 화면 요약만 잘 뽑고 갭 분석을 대충 하면 이 스킬은 실패한 것이다.
+So the most important part of this skill's output is not the screen descriptions. It is the **`## Needs Answer`** section. What the user actually gets is *knowing today what they would otherwise discover three weeks in*. Nail the screen summaries but do the gap analysis carelessly, and this skill has failed.
 
-**절대 추측으로 빈칸을 메우지 말 것.** 피그마에 없는 상태를 그럴듯하게 지어내면 사용자는 그게 정의된 줄 알고 넘어간다. 이건 아무것도 안 하느니만 못하다. 모르는 건 `확인 필요`로 보낸다.
+**Never fill a blank with a guess.** Inventing a plausible state that Figma does not define is worse than doing nothing — the user will read it as settled and move on. When you do not know, send it to `Needs Answer`.
 
-## 사전 확인
+## Before you start
 
-시작 전에 접근 수단을 확인한다.
+Confirm how you can reach the file.
 
-1. **Figma MCP 서버**가 붙어 있으면 그걸 쓴다 (`get_design_context`, `get_screenshot`, `get_variable_defs`). 가장 정확하다.
-2. 없으면 **Figma REST API** (`GET /v1/files/:key/nodes`)를 쓴다. 사용자에게 토큰을 요청한다.
-3. 둘 다 없으면 여기서 멈추고 사용자에게 알린다. 스크린샷 몇 장으로 추측해서 진행하지 않는다.
+1. If a **Figma MCP server** is connected, use it (`get_design_context`, `get_screenshot`, `get_variable_defs`). Most accurate.
+2. If not, use the **Figma REST API** (`GET /v1/files/:key/nodes`). Ask the user for a token.
+3. If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
 
-URL에서 파일 키와 노드 ID를 파싱한다: `figma.com/design/{fileKey}/{name}?node-id={nodeId}`
+Parse the file key and node ID out of the URL: `figma.com/design/{fileKey}/{name}?node-id={nodeId}`
 
-## 워크플로
+## Workflow
 
-### 1단계: 얕게 훑어 인벤토리를 만든다
+### Step 1: Skim shallow, build an inventory
 
-**페이지 전체 노드 트리를 한 번에 요청하지 말 것.** 실제 파일의 트리는 수만 노드 규모라 컨텍스트가 즉시 터진다. 이 단계에서 실패하는 게 이 스킬의 가장 흔한 실패 모드다.
+**Never request a page's entire node tree at once.** Real files run to tens of thousands of nodes and the context window blows instantly. Failing here is this skill's most common failure mode.
 
-깊이를 얕게 제한해서 최상위 프레임 목록만 받는다. REST API라면 `?depth=2`를 쓴다.
+Cap the depth and take only the top-level frame list. On the REST API, use `?depth=2`.
 
-각 프레임에 대해 이것만 기록한다: 노드 ID, 이름, 좌표, 크기.
+Record only this per frame: node ID, name, coordinates, size.
 
-그다음 사용자에게 인벤토리를 보여주고 범위를 확인받는다:
+Then show the user the inventory and confirm scope:
 
 ```
-페이지에서 프레임 34개를 찾았습니다.
+Found 34 frames on this page.
 
-추정 그룹:
-A. 회선 해지 (7개) — "해지_약관", "해지_사유선택", ...
-B. 명의 변경 (5개) — ...
-C. 분류 불가 (9개) — "Frame 12", "Rectangle 47", ...
+Likely groups:
+A. 회선 해지 (7) — "해지_약관", "해지_사유선택", ...
+B. 명의 변경 (5) — ...
+C. Unclassifiable (9) — "Frame 12", "Rectangle 47", ...
 
-전부 처리할까요, 특정 그룹만 할까요?
+Process all of them, or just one group?
 ```
 
-프레임이 40개를 넘으면 범위를 좁히도록 **권한다**. 넓게 훑은 얕은 기획서보다 좁고 정확한 게 낫다.
+Frame names are quoted **exactly as they appear in the file** — never translated. See [Language](#language).
 
-### 2단계: 기능 단위로 묶는다
+Past 40 frames, **push** the user to narrow the scope. Narrow and accurate beats broad and shallow.
 
-다음 신호를 순서대로 활용한다:
+### Step 2: Group into features
 
-1. **이름 규칙** — `해지_01_약관`, `Signup / Step 2` 같은 접두사·구분자
-2. **캔버스 배치** — 사람은 관련 화면을 가로줄이나 세로줄로 나란히 둔다. 좌표 근접성이 이름보다 신뢰도가 높을 때가 많다
-3. **프로토타입 연결** — 있으면 가장 확실한 신호다. 화면 흐름을 그대로 알려준다
-4. **화면 내 텍스트** — 위 셋이 다 실패할 때 최후 수단
+Use these signals, in order:
 
-레이어 이름이 `Frame 12`, `Rectangle 47`뿐인 파일은 흔하다. 이건 예외가 아니라 기본값에 가깝다. 이 경우 좌표와 스크린샷에 의존하고, **분류 근거가 약하다는 걸 출력에 명시한다.** 확신 있는 척하지 않는다.
+1. **Naming conventions** — prefixes and separators like `해지_01_약관`, `Signup / Step 2`
+2. **Canvas placement** — people lay related screens out in a row or a column. Proximity is often more reliable than names
+3. **Prototype links** — the strongest signal when present. They hand you the flow directly
+4. **Text inside the screens** — last resort, when the three above all fail
 
-### 3단계: 프레임별로 추출한다 (배치 처리)
+Files where every layer is named `Frame 12` or `Rectangle 47` are common. That is closer to the default than to an exception. In that case lean on coordinates and screenshots, and **state plainly in the output that the grouping rests on weak evidence.** Do not fake confidence.
 
-여기가 반복이 도는 구간이다. 프레임을 **5~8개씩 배치**로 나눠 처리한다.
+### Step 3: Extract frame by frame (in batches)
 
-- **서브에이전트를 쓸 수 있으면** 배치별로 병렬 실행한다. 각 서브에이전트에 프레임 ID 목록과 아래 추출 항목을 넘기고, 구조화된 결과만 받는다. 원본 노드 트리를 메인 컨텍스트로 가져오지 않는 게 핵심이다.
-- **못 쓰면** 순차 처리하되, 각 배치가 끝나면 중간 결과를 파일에 append하고 원본 데이터는 버린다.
+This is the loop. Split frames into **batches of 5–8**.
 
-프레임 하나당 추출할 것:
+- **If subagents are available**, run batches in parallel. Hand each subagent a list of frame IDs and the extraction items below, and take back only structured results. The point is to keep raw node trees out of the main context.
+- **If not**, go sequentially, appending intermediate results to a file after each batch and discarding the raw data.
 
-- 화면 이름과 목적 (한 줄)
-- **표시되는 데이터 항목** — 이게 가장 중요하다. 나중에 API 스펙과 대조할 대상이다
-- 사용자 액션 (버튼, 입력, 제스처)과 각각의 결과 화면
-- 실제 카피 vs 더미 텍스트 구분 (`Lorem ipsum`, `홍길동`, `텍스트를 입력하세요`는 더미로 표시)
-- 조건부 요소 (숨겨진 레이어, 변형(variant), 배지, 툴팁)
+Per frame, extract:
 
-**시각 확인이 필요할 때만 스크린샷을 받는다.** 레이어 이름이 무의미하거나 구조가 모호할 때다. 모든 프레임에 스크린샷을 받으면 토큰이 낭비된다.
+- Screen name and purpose (one line)
+- **Data fields displayed** — the most important item. This is what gets checked against the API spec later
+- User actions (buttons, inputs, gestures) and the resulting screen for each
+- Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
+- Conditional elements (hidden layers, variants, badges, tooltips)
 
-반복 컴포넌트(리스트 아이템 등)는 한 번만 기술하고 반복이라고 적는다.
+**Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
-### 4단계: 병합하고 갭을 찾는다
+Describe repeated components (list items and the like) once, and note that they repeat.
 
-배치 결과를 합친 뒤, `references/gap-checklist.md`를 읽고 항목별로 대조한다. 이 파일은 이 단계에서만 읽으면 된다.
+### Step 4: Merge and find the gaps
 
-갭을 적을 때는 **어느 화면의 무엇이 빠졌는지** 구체적으로 쓴다. "에러 처리 필요" 같은 건 도움이 안 된다. "회선 목록 화면 — 조회 실패 시 표시 미정의"라고 쓴다.
+After merging the batch results, read `references/gap-checklist.md` and work through it item by item. That file only needs to be read at this step.
 
-### 5단계: 출력
+When writing a gap, be specific about **which screen is missing what**. "Needs error handling" is useless. Write "Line list screen — nothing defined for a failed lookup."
 
-`{기능명}-spec.md` 파일로 저장한다. 기능이 여러 개면 파일을 나눈다.
+### Step 5: Output
 
-## 출력 형식
+Save as `{feature-name}-spec.md`. Split into multiple files if there are multiple features.
 
-이 템플릿을 따른다. 내용이 없는 섹션은 지우지 말고 "미정의"라고 적는다 — 빈 섹션 자체가 정보다.
+## Output format
+
+Follow this template. Do not delete a section that has no content — write "Not defined" instead. An empty section is itself information.
 
 ```markdown
-# {기능명}
+# {Feature name}
 
-> 출처: {피그마 링크} · 추출 {날짜} · 프레임 {N}개
-> ⚠️ 이 문서는 피그마에서 자동 추출됐습니다. 기획 의도가 아니라 그려진 것만 담고 있습니다.
+> Source: {Figma link} · Extracted {date} · {N} frames
+> ⚠️ Auto-extracted from Figma. Contains what was drawn, not what was intended.
 
-## 개요
-{2~3문장. 이 기능이 뭘 하는지}
+## Overview
+{2–3 sentences on what this feature does}
 
-## 화면 흐름
-{진입점 → 화면 순서 → 종료점. 분기가 있으면 표시}
+## Flow
+{Entry point → screen order → exit. Mark branches}
 
-## 화면별 상세
+## Screens
 
-### 1. {화면명} `{node-id}`
-**목적**: {한 줄}
+### 1. {Screen name} `{node-id}`
+**Purpose**: {one line}
 
-**표시 데이터**
-| 항목 | 예시값 | 비고 |
+**Data displayed**
+| Field | Sample value | Note |
 |---|---|---|
 | 회선번호 | 010-1234-5678 | |
 | 요금제명 | 5G 시그니처 | |
-| 위약금 | 42,000원 | 더미값 추정 |
+| 위약금 | 42,000원 | likely dummy |
 
-**액션**
-| 요소 | 동작 | 다음 화면 |
+**Actions**
+| Element | Behavior | Next screen |
 |---|---|---|
-| [다음] | 사유 선택으로 이동 | 2번 화면 |
-| [취소] | 미정의 | ? |
+| [다음] | Go to reason selection | Screen 2 |
+| [취소] | Not defined | ? |
 
-**정의된 상태**: 기본, 로딩
-**미정의 상태**: 에러, 빈 값
+**States defined**: default, loading
+**States not defined**: error, empty
 
-## 데이터 요구사항
-{전체 화면에서 필요한 데이터를 중복 제거해 나열. 백엔드와 대조할 목록}
+## Data requirements
+{Every data field across all screens, deduplicated. The list to check against the backend}
 
-## 확인 필요
+## Needs Answer
 
-기획자·디자이너에게 물어야 할 것들. 개발 착수 전에 답이 필요한 순서로 정렬.
+Questions for the product owner and designer. Ordered by what must be answered before development can start.
 
-### 🔴 블로커 — 이게 없으면 개발 못 함
-- [ ] {화면}: {질문}
+### 🔴 Blockers — cannot build without this
+- [ ] {Screen}: {question}
 
-### 🟡 예외 상황 — 구현 중 반드시 마주침
-- [ ] {화면}: {질문}
+### 🟡 Edge cases — you will hit these during implementation
+- [ ] {Screen}: {question}
 
-### 🟢 확인 권장
-- [ ] {화면}: {질문}
+### 🟢 Worth confirming
+- [ ] {Screen}: {question}
 
-## 추출 노트
-{분류 근거가 약했던 부분, 판독 실패한 프레임, 더미로 추정한 값 등}
+## Extraction notes
+{Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
 
-## 언어
+Note the table above: the prose is English while `회선번호`, `5G 시그니처`, and `[다음]` stay exactly as they appear in the design. That is the rule, not an inconsistency — see below.
 
-**출력 언어는 피그마 파일의 언어를 따른다.** 한국어 파일이면 한국어로, 영어 파일이면 영어로 쓴다. 섹션 제목도 함께 맞춘다.
+## Language
 
-## 하지 말 것
+**This document being written in English says nothing about what language to write the output in.** Do not let it pull you toward English. Decide as follows:
 
-- 노드 트리 전체를 한 번에 요청하기 (컨텍스트 폭발)
-- 그려지지 않은 상태를 추측해서 채우기
-- 더미 텍스트를 실제 카피처럼 기술하기
-- 픽셀값, 색상, 폰트 같은 디자인 스펙 담기 — 그건 Figma MCP가 코드 생성 시점에 직접 넘긴다. 이 문서는 **무엇을·왜**를 다루고 **어떻게 보이는지**는 다루지 않는다
-- 분류가 불확실한데 확신 있게 쓰기
+**Default: write the spec in the language the user made the request in.** Korean request → Korean spec, English request → English spec. Match the section headings too, including the template above (`Needs Answer` → `확인 필요`, `Blockers` → `블로커`, and so on).
+
+**If the user names a language, that wins.** Otherwise do not ask — just go with the default.
+
+**Never translate text quoted from the design.** Screen names, layer names, button labels, copy, and data values are identifiers the developer will use to search the Figma file. Translate them and that link breaks.
+
+```
+Design: [다음] button, 요금제명 field, "5G 시그니처"
+
+✅  Tapping [다음] moves to reason selection. The 요금제명 field shows "5G 시그니처".
+❌  Tapping [Next] moves to reason selection. The plan name field shows "5G Signature".
+```
+
+The sentence around it follows the request language. What sits inside the quotes does not.
+
+## Do not
+
+- Request an entire node tree at once (context explosion)
+- Guess at states that were never drawn
+- Describe dummy text as if it were real copy
+- Include pixel values, colors, or fonts — Figma MCP hands those over directly at code-generation time. This document covers **what and why**, not **how it looks**
+- Write with confidence about a grouping you are not sure of

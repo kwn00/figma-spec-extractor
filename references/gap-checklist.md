@@ -1,93 +1,93 @@
-# 갭 체크리스트
+# Gap checklist
 
-4단계에서만 읽는다. 추출된 화면들을 아래 항목과 대조해서, 피그마에 정의되지 않은 것을 `확인 필요`로 보낸다.
+Read this at step 4 only. Check the extracted screens against the items below, and send anything Figma never defined to `Needs Answer`.
 
-모든 항목을 기계적으로 나열하지 말 것. **해당 화면에 실제로 적용되는 것만** 고른다. 정적 안내 페이지에 페이지네이션 질문을 다는 건 노이즈다.
+Do not mechanically list every item. **Pick only what actually applies to the screen in front of you.** Attaching a pagination question to a static information page is noise.
 
-우선순위 판단 기준:
-- 🔴 **블로커** — 답이 없으면 코드를 못 씀 (분기 조건, 필수 데이터 출처)
-- 🟡 **예외** — 구현하다 반드시 마주침 (에러, 빈 상태)
-- 🟢 **권장** — 나중에 고쳐도 되는 것 (긴 텍스트, 접근성)
+How to prioritize:
+- 🔴 **Blocker** — no answer, no code (branch conditions, where required data comes from)
+- 🟡 **Edge case** — you will hit it during implementation (errors, empty states)
+- 🟢 **Worth confirming** — fine to fix later (long text, accessibility)
 
 ---
 
-## 1. 화면 상태
+## 1. Screen states
 
-거의 모든 화면에 해당. 가장 흔한 누락이다.
+Applies to nearly every screen. The most common omission by far.
 
-- [ ] 로딩 중 — 스켈레톤인가 스피너인가, 부분 로딩인가
-- [ ] 빈 상태 — 목록이 0건일 때
-- [ ] 에러 — 서버 오류, 네트워크 끊김
-- [ ] 권한 없음 — 로그인 안 됨, 본인 아님, 등급 부족
-- [ ] 점검 중 / 서비스 시간 외
-- [ ] 최초 진입 vs 재방문 차이
+- [ ] Loading — skeleton or spinner, whole screen or partial
+- [ ] Empty — when the list has zero items
+- [ ] Error — server failure, network loss
+- [ ] Unauthorized — not logged in, not the account owner, insufficient tier
+- [ ] Under maintenance / outside service hours
+- [ ] First visit vs. return visit
 
-## 2. 목록·테이블
+## 2. Lists and tables
 
-- [ ] 페이지네이션 방식 (더보기 / 무한스크롤 / 페이지 번호)
-- [ ] 한 번에 몇 건
-- [ ] 정렬 기준과 기본값
-- [ ] 필터 조합 시 동작, 필터 결과 0건일 때
-- [ ] 목록 최대 건수 상한
-- [ ] 새로고침(pull to refresh) 여부
+- [ ] Pagination style (load more / infinite scroll / page numbers)
+- [ ] How many per fetch
+- [ ] Sort options and the default
+- [ ] Behavior when filters combine, and when a filter returns zero results
+- [ ] Upper bound on list length
+- [ ] Pull to refresh
 
-## 3. 폼·입력
+## 3. Forms and input
 
-- [ ] 필수 / 선택 구분
-- [ ] 유효성 규칙 (길이, 형식, 범위)
-- [ ] 에러 메시지 문구와 표시 위치
-- [ ] 검증 시점 (입력 중 / 포커스 아웃 / 제출 시)
-- [ ] 제출 중 버튼 상태, 중복 제출 방지
-- [ ] 작성 중 이탈 시 경고 / 임시 저장
-- [ ] 키보드 타입, 자동완성, 입력 마스크
+- [ ] Required vs. optional
+- [ ] Validation rules (length, format, range)
+- [ ] Error message wording and where it appears
+- [ ] When validation fires (as you type / on blur / on submit)
+- [ ] Button state while submitting, and double-submit prevention
+- [ ] Warning on leaving mid-edit, or draft saving
+- [ ] Keyboard type, autocomplete, input masks
 
-## 4. 데이터
+## 4. Data
 
-- [ ] null 또는 빈 값일 때 표시
-- [ ] 숫자 포맷 — 천 단위 구분, 소수점, 통화 기호 위치
-- [ ] 날짜 포맷과 상대시간 ("3분 전") 기준
-- [ ] 시간대 처리
-- [ ] 텍스트 오버플로 — 말줄임인지 줄바꿈인지, 몇 줄까지
-- [ ] 값의 범위 상한 (999+ 처리 등)
-- [ ] 이미지 로드 실패 시 대체
+- [ ] What shows when a value is null or empty
+- [ ] Number formatting — thousands separators, decimals, currency symbol placement
+- [ ] Date formatting, and the threshold for relative time ("3 minutes ago")
+- [ ] Time zone handling
+- [ ] Text overflow — truncate or wrap, and after how many lines
+- [ ] Value ceilings (999+ and the like)
+- [ ] Fallback when an image fails to load
 
-## 5. 흐름·내비게이션
+## 5. Flow and navigation
 
-- [ ] 이 화면 진입 경로 전부
-- [ ] 뒤로가기 동작 — 특히 완료 화면에서
-- [ ] 중간 이탈 후 재진입 시 어디서부터
-- [ ] 딥링크 진입 가능 여부
-- [ ] 성공 후 이동 위치
-- [ ] 취소·닫기 동작 (확인 모달 필요 여부)
+- [ ] Every path that leads into this screen
+- [ ] Back behavior — especially from a completion screen
+- [ ] Where the user resumes after leaving mid-flow
+- [ ] Whether deep-link entry is allowed
+- [ ] Where the user lands after success
+- [ ] Cancel and close behavior (does it need a confirmation modal)
 
-## 6. 권한·인증
+## 6. Permissions and auth
 
-- [ ] 비로그인 접근 시
-- [ ] 세션 만료 시
-- [ ] 본인 확인 필요 여부와 시점
-- [ ] 역할별 화면 차이
+- [ ] Access while logged out
+- [ ] Session expiry
+- [ ] Whether identity verification is required, and at what point
+- [ ] Screen differences by role
 
-## 7. 비즈니스 규칙
+## 7. Business rules
 
-기획서에서 가장 자주 통째로 빠지는 영역. 화면만 봐서는 절대 알 수 없다.
+The area most often missing wholesale from a spec. You can never learn it from the screens alone.
 
-- [ ] 이 액션을 못 하는 조건 (미납, 이미 신청됨, 기간 아님)
-- [ ] 그때 버튼을 숨기는가 비활성화하는가, 사유를 보여주는가
-- [ ] 처리에 시간이 걸리는가 (즉시 / 익일 / 심사)
-- [ ] 취소·철회 가능 여부와 기한
-- [ ] 중복 신청 처리
-- [ ] 금액 계산 근거와 반올림 규칙
+- [ ] Conditions that block this action (unpaid balance, already applied, outside the eligible window)
+- [ ] When blocked, is the button hidden or disabled, and is a reason shown
+- [ ] Whether processing takes time (immediate / next day / under review)
+- [ ] Whether it can be cancelled or withdrawn, and by when
+- [ ] How duplicate submissions are handled
+- [ ] How amounts are calculated, and the rounding rule
 
-## 8. 플랫폼
+## 8. Platform
 
-- [ ] 반응형 브레이크포인트 (모바일 화면만 있으면 데스크톱은?)
-- [ ] iOS / Android 차이
-- [ ] 다크 모드
-- [ ] 접근성 — 스크린리더 레이블, 색상만으로 정보 전달하는 부분
+- [ ] Responsive breakpoints (only mobile screens exist — what about desktop?)
+- [ ] iOS / Android differences
+- [ ] Dark mode
+- [ ] Accessibility — screen reader labels, anything conveyed by color alone
 
-## 9. 외부 연동
+## 9. External integrations
 
-- [ ] 외부 앱 이동 후 복귀 처리
-- [ ] 결제·인증 중단 시
-- [ ] 타임아웃 기준과 그때 표시
-- [ ] 재시도 가능 여부
+- [ ] Returning from an external app
+- [ ] Payment or auth abandoned midway
+- [ ] Timeout thresholds and what shows when one is hit
+- [ ] Whether a retry is possible
