@@ -20,10 +20,34 @@ So the most important part of this skill's output is not the screen descriptions
 Confirm how you can reach the file.
 
 1. If a **Figma MCP server** is connected, use it (`get_design_context`, `get_screenshot`, `get_variable_defs`). Most accurate.
-2. If not, use the **Figma REST API** (`GET /v1/files/:key/nodes`). Ask the user for a token.
+2. If not, use the **Figma REST API**. Ask the user for a token.
 3. If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
 
-Parse the file key and node ID out of the URL: `figma.com/design/{fileKey}/{name}?node-id={nodeId}`
+### Parsing the URL
+
+`figma.com/design/{fileKey}/{name}?node-id={nodeId}`
+
+Older files use `/file/` in place of `/design/` — same shape, same fileKey position. `/proto/` links carry a fileKey too. `/board/` is FigJam, not a design file; say so and stop.
+
+**Convert the node ID before you send it.** The URL writes it with a hyphen, the API takes a colon:
+
+```
+node-id=45-678   →   45:678
+```
+
+Skip this and the API answers `{"nodes": {}}`. That is not an error — it is an empty result that reads exactly like an empty page. It isn't one.
+
+### REST API
+
+Header: `X-Figma-Token: {token}`. Never echo the token back to the user, print it in a command you show, or write it into a file.
+
+| What you need | Call |
+|---|---|
+| Shallow tree for the inventory (Step 1) | `GET /v1/files/{key}?depth=2` |
+| One node's subtree (Step 3) | `GET /v1/files/{key}/nodes?ids=45:678&depth=2` |
+| Screenshot | `GET /v1/images/{key}?ids=45:678&format=png` |
+
+`ids` is required on `/nodes` — without it the call 400s rather than returning the whole file. Batch IDs comma-separated, and raise `depth` only for the frames you are actually reading.
 
 ## Workflow
 
@@ -31,7 +55,7 @@ Parse the file key and node ID out of the URL: `figma.com/design/{fileKey}/{name
 
 **Never request a page's entire node tree at once.** Real files run to tens of thousands of nodes and the context window blows instantly. Failing here is this skill's most common failure mode.
 
-Cap the depth and take only the top-level frame list. On the REST API, use `?depth=2`.
+Cap the depth and take only the top-level frame list — `GET /v1/files/{key}?depth=2` on the REST API.
 
 Record only this per frame: node ID, name, coordinates, size.
 
@@ -67,7 +91,7 @@ Files where every layer is named `Frame 12` or `Rectangle 47` are common. That i
 
 This is the loop. Split frames into **batches of 5–8**.
 
-- **If subagents are available**, run batches in parallel. Hand each subagent a list of frame IDs and the extraction items below, and take back only structured results. The point is to keep raw node trees out of the main context.
+- **If subagents are available**, run batches in parallel. Hand each subagent a list of frame IDs, the extraction items below, and the return format below. Take back only that. The point is to keep raw node trees out of the main context.
 - **If not**, go sequentially, appending intermediate results to a file after each batch and discarding the raw data.
 
 Per frame, extract:
@@ -77,6 +101,29 @@ Per frame, extract:
 - User actions (buttons, inputs, gestures) and the resulting screen for each
 - Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
 - Conditional elements (hidden layers, variants, badges, tooltips)
+
+**Every batch comes back in this shape** — subagent or sequential, same format. Step 4 merges these as they are, so a batch that invents its own layout has to be re-read.
+
+```yaml
+- node_id: "45:678"
+  name: "해지_01_약관"           # exactly as in the file, never translated
+  purpose: "..."
+  data_fields:
+    - label: "회선번호"           # exactly as in the file
+      sample: "010-1234-5678"
+      dummy: false
+  actions:
+    - element: "[다음]"           # exactly as in the file
+      behavior: "..."
+      next: "46:012"             # or "not defined"
+  states_defined: [default, loading]
+  conditional: ["..."]           # hidden layers, variants, badges, tooltips
+  repeats: "list item ×3, same structure"
+  evidence: strong               # weak = layer names meaningless, read off the screenshot
+  unread: "..."                  # why, if the frame could not be read at all
+```
+
+Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` is what Step 4 is looking for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
 
 **Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
@@ -150,6 +197,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ```
 
 Note the table above: the prose is English while `회선번호`, `5G 시그니처`, and `[다음]` stay exactly as they appear in the design. That is the rule, not an inconsistency — see below.
+
+A filled-in spec is in [`references/example-spec.md`](references/example-spec.md), written in Korean for a Korean request. Read it only if this template leaves the shape unclear — the two together are the same document in two languages, which is the point.
 
 ## Language
 
