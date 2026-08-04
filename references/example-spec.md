@@ -1,4 +1,4 @@
-# Example output
+## Example output
 
 A finished spec, so the shape is concrete. **Read this only if the template in SKILL.md leaves you unsure** — it is not part of the workflow.
 
@@ -13,7 +13,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 # 회선 해지
 
-> 출처: https://figma.com/design/abc123/service?node-id=45-678 · 2026-07-30 추출 · 4 frames
+> 출처: https://figma.com/design/abc123/service?node-id=45-678 · 2026-07-30 추출 · 프레임 4개
 > ⚠️ 피그마에서 자동 추출. 그려진 것만 담겨 있고, 의도된 것은 담겨 있지 않다.
 
 ## 개요
@@ -34,7 +34,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 ## 화면
 
-### 1. 회선_01_선택 `45:678`
+### 1. 해지_01_회선선택 `45:678`
 
 **목적**: 보유 회선 중 해지할 회선을 하나 고른다.
 
@@ -59,7 +59,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 **정의된 상태**: default, 카드 선택됨
 **정의되지 않은 상태**: loading, 회선 0개, error
 
-### 2. 회선_02_약관 `45:912`
+### 2. 해지_02_약관 `45:912`
 
 **목적**: 해지 조건과 정산 금액을 안내하고 동의를 받는다.
 
@@ -83,7 +83,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 **정의된 상태**: [다음] 비활성 / 활성
 **정의되지 않은 상태**: loading, error, 위약금 조회 실패
 
-### 3. 회선_03_사유 `45:1104`
+### 3. 해지_03_사유 `45:1104`
 
 **목적**: 해지 사유를 수집한다.
 
@@ -106,7 +106,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 **정의된 상태**: default
 **정의되지 않은 상태**: loading, 제출 중, error, 미선택 상태로 제출 시도
 
-### 4. 회선_04_완료 `45:1288`
+### 4. 해지_04_완료 `45:1288`
 
 **목적**: 해지 접수 완료를 알린다.
 
@@ -177,7 +177,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 ## 추출 노트
 
-- 4개 프레임 모두 `회선_NN_이름` 규칙을 따라 그룹핑 근거는 명확하다. 캔버스 배치도 좌→우 한 줄로 순서와 일치한다
+- 4개 프레임 모두 `해지_NN_이름` 규칙을 따라 그룹핑 근거는 명확하다. 캔버스 배치도 좌→우 한 줄로 순서와 일치한다
 - 프로토타입 링크는 [다음] 계열 버튼에만 걸려 있다. `←`, [확인], [약관 전문 보기]는 연결이 없어 "정의 안 됨"으로 적었다. 링크를 안 건 것인지 동작이 미정인 것인지는 파일에서 구분되지 않는다
 - 화면 3의 기타 입력란은 숨김 레이어로 존재한다. 조건부 노출로 보이지만 조건이 명시된 곳은 없다
 - 화면 4의 해지 예정일·접수번호는 더미로 추정했다. 형식이 그럴듯하나 다른 화면과 대조할 값이 없어 확정하지 못했다

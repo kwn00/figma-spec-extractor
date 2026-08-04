@@ -39,15 +39,26 @@ Skip this and the API answers `{"nodes": {}}`. That is not an error — it is an
 
 ### REST API
 
-Header: `X-Figma-Token: {token}`. Never echo the token back to the user, print it in a command you show, or write it into a file.
+**Token**: check the environment for `FIGMA_TOKEN` first. Ask the user only if it is not there — and when you ask, say they can set the variable instead of pasting the token into the conversation. Header is `X-Figma-Token: {token}`. Never echo it back, print it inside a command you show the user, or write it into a file.
+
+Getting to the right page takes two calls. The node ID in the URL usually points at a frame, not at the page holding it.
 
 | What you need | Call |
 |---|---|
-| Shallow tree for the inventory (Step 1) | `GET /v1/files/{key}?depth=2` |
-| One node's subtree (Step 3) | `GET /v1/files/{key}/nodes?ids=45:678&depth=2` |
+| Page list | `GET /v1/files/{key}?depth=1` |
+| Frames on one page (Step 1) | `GET /v1/files/{key}/nodes?ids={pageId}&depth=2` |
+| One frame's subtree (Step 3) | `GET /v1/files/{key}/nodes?ids=45:678&depth=2` |
 | Screenshot | `GET /v1/images/{key}?ids=45:678&format=png` |
 
+**Do not reach for `GET /v1/files/{key}?depth=2` to build the inventory.** It returns the top-level frames of *every* page in the file. On a file with ten pages that is the context explosion Step 1 exists to prevent.
+
 `ids` is required on `/nodes` — without it the call 400s rather than returning the whole file. Batch IDs comma-separated, and raise `depth` only for the frames you are actually reading.
+
+When a call fails, these three account for nearly all of it:
+
+- `403` — token missing, wrong, or without access to this file. Not worth a retry
+- `404` — bad file key, or the token's account cannot see the file
+- `200` with `{"nodes": {}}` — the node ID did not resolve. Almost always the hyphen, above
 
 ## Workflow
 
@@ -55,7 +66,7 @@ Header: `X-Figma-Token: {token}`. Never echo the token back to the user, print i
 
 **Never request a page's entire node tree at once.** Real files run to tens of thousands of nodes and the context window blows instantly. Failing here is this skill's most common failure mode.
 
-Cap the depth and take only the top-level frame list — `GET /v1/files/{key}?depth=2` on the REST API.
+Cap the depth and take only the top-level frame list of **the one page you are working on** — `GET /v1/files/{key}/nodes?ids={pageId}&depth=2` on the REST API.
 
 Record only this per frame: node ID, name, coordinates, size.
 
@@ -65,7 +76,7 @@ Then show the user the inventory and confirm scope:
 Found 34 frames on this page.
 
 Likely groups:
-A. 회선 해지 (7) — "해지_약관", "해지_사유선택", ...
+A. 회선 해지 (7) — "해지_01_회선선택", "해지_02_약관", ...
 B. 명의 변경 (5) — ...
 C. Unclassifiable (9) — "Frame 12", "Rectangle 47", ...
 
@@ -80,7 +91,7 @@ Past 40 frames, **push** the user to narrow the scope. Narrow and accurate beats
 
 Use these signals, in order:
 
-1. **Naming conventions** — prefixes and separators like `해지_01_약관`, `Signup / Step 2`
+1. **Naming conventions** — prefixes and separators like `해지_02_약관`, `Signup / Step 2`
 2. **Canvas placement** — people lay related screens out in a row or a column. Proximity is often more reliable than names
 3. **Prototype links** — the strongest signal when present. They hand you the flow directly
 4. **Text inside the screens** — last resort, when the three above all fail
@@ -106,24 +117,35 @@ Per frame, extract:
 
 ```yaml
 - node_id: "45:678"
-  name: "해지_01_약관"           # exactly as in the file, never translated
+  name: "해지_01_회선선택"        # exactly as in the file, never translated
   purpose: "..."
   data_fields:
     - label: "회선번호"           # exactly as in the file
       sample: "010-1234-5678"
-      dummy: false
+      dummy: true                # omit entirely when the value looks real
   actions:
     - element: "[다음]"           # exactly as in the file
       behavior: "..."
-      next: "46:012"             # or "not defined"
-  states_defined: [default, loading]
+      next: "45:912"             # or "not defined"
+  states_defined: [default]      # fixed vocabulary, below
+  states_other: ["카드 선택됨"]   # screen-specific states, named as in the file
   conditional: ["..."]           # hidden layers, variants, badges, tooltips
-  repeats: "list item ×3, same structure"
+  repeats: "회선 카드 ×3, same structure"
   evidence: strong               # weak = layer names meaningless, read off the screenshot
   unread: "..."                  # why, if the frame could not be read at all
 ```
 
-Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` is what Step 4 is looking for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
+`states_defined` takes **only** these values:
+
+```
+default · loading · empty · error · unauthorized · maintenance · first_visit
+```
+
+That list is the one `references/gap-checklist.md` § 1 checks against, so Step 4 diffs it mechanically. Anything outside it — `카드 선택됨`, `[다음] 활성` — goes in `states_other` and is not diffed. Put a screen-specific state in `states_defined` and the gap analysis silently stops working.
+
+The split exists for the diff, not for the reader. In the final document the two collapse back into one **States defined** line.
+
+Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` entry is exactly what Step 4 is hunting for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
 
 **Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
@@ -177,7 +199,12 @@ Follow this template. Do not delete a section that has no content — write "Not
 **States not defined**: error, empty
 
 ## Data requirements
-{Every data field across all screens, deduplicated. The list to check against the backend}
+Every data field across all screens, deduplicated. The list to check against the backend.
+
+| Field | Screen | Note |
+|---|---|---|
+| 회선번호 | 1 | |
+| 위약금 | 2 | calculation unconfirmed |
 
 ## Needs Answer
 
