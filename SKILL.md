@@ -20,7 +20,7 @@ So the most important part of this skill's output is not the screen descriptions
 Confirm how you can reach the file.
 
 1. If a **Figma MCP server** is connected, use it (`get_design_context`, `get_screenshot`, `get_variable_defs`). Most accurate.
-2. If not, use the **Figma REST API**. Ask the user for a token.
+2. If not, use the **Figma REST API**. Needs a token — see below.
 3. If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
 
 ### Parsing the URL
