@@ -17,25 +17,66 @@ So the most important part of this skill's output is not the screen descriptions
 
 ## Before you start
 
-Confirm how you can reach the file.
+Confirm how you can reach the file. **Neither route covers the whole job well**, so check for both before starting rather than committing to one.
 
-1. If a **Figma MCP server** is connected, use it (`get_design_context`, `get_screenshot`, `get_variable_defs`). Most accurate.
-2. If not, use the **Figma REST API**. Needs a token — see below.
-3. If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
+| | Figma MCP | REST API |
+|---|---|---|
+| Inventory (Step 1) | no depth control — costly, see below | `depth=` does exactly this |
+| Text inside the screens (Step 3) | `get_design_context` | `characters` on TEXT nodes |
+| Screenshots | `get_screenshot` | `GET /v1/images` |
+
+With both available, the good split is **REST for Step 1, MCP for Step 3**. With only one, read that route's caveats below — each has a step it does badly, and neither fails loudly.
+
+If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
 
 ### Parsing the URL
 
 `figma.com/design/{fileKey}/{name}?node-id={nodeId}`
 
-Older files use `/file/` in place of `/design/` — same shape, same fileKey position. `/proto/` links carry a fileKey too. `/board/` is FigJam, not a design file; say so and stop.
+Older files use `/file/` in place of `/design/` — same shape, same fileKey position. `/proto/` links carry a fileKey too.
 
-**Convert the node ID before you send it.** The URL writes it with a hyphen, the API takes a colon:
+**Branch URLs**: `figma.com/design/{fileKey}/branch/{branchKey}/{name}`. Pass **`branchKey`** as the file key. The key in front of `/branch/` points at the main file, not at the branch the user linked.
+
+`/board/` is FigJam and `/slides/` is Slides. Neither is a design file — `get_metadata` and the node endpoints return nothing useful. Say so and stop, unless screenshots alone are enough for what was asked.
+
+**On REST, convert the node ID before you send it.** The URL writes it with a hyphen, the API takes a colon:
 
 ```
 node-id=45-678   →   45:678
 ```
 
 Skip this and the API answers `{"nodes": {}}`. That is not an error — it is an empty result that reads exactly like an empty page. It isn't one.
+
+This is a REST rule only. MCP takes either form.
+
+### Figma MCP
+
+Tools are prefixed `mcp__plugin_figma_figma__`. Four of them matter here:
+
+| Tool | Returns | Watch for |
+|---|---|---|
+| `get_metadata` | node tree as XML — `id · type · name · x · y · width · height` | **No text content.** No depth limit |
+| `get_design_context` | reference code, screenshot, and metadata for one node | Requires loading its own `figma-design-to-code` guidance first — the tool says so and means it |
+| `get_screenshot` | PNG render | Works on `/design/`, `/board/`, `/slides/` alike |
+| `get_variable_defs` | variables and tokens | |
+
+Arguments are `fileKey` (required) and `nodeId` (optional). Nothing depends on what is selected in the desktop app, so a URL is enough on its own. Responses do report the user's current selection at the top — useful for confirming you and the user are looking at the same screen, not something to depend on.
+
+**Omit `nodeId` and `get_metadata` returns the file's top-level page list** instead of a tree. That is the entry point when you do not yet know which page you want. Never send an empty string or an ID you guessed.
+
+`get_metadata` is `/design/` only.
+
+Two constraints shape the whole workflow on this route:
+
+**1. `get_metadata` has no depth parameter.** It returns the entire recursive subtree, every time. A single 1920×1080 frame measured 424 nodes and 56 KB at 13 levels deep; a page holding thirty of those is far past what the main context can take. See Step 1 for how to call it anyway.
+
+**2. `get_metadata` does not return text.** It gives you the layer's *name*, never the string inside it:
+
+```xml
+<text id="5060:78819" name="영역명 텍스트" x="29" y="0" width="170" height="25" />
+```
+
+That says a text node exists and nothing whatsoever about what it says. Since **Data fields displayed** is the single most important thing this skill extracts, `get_metadata` alone can never complete Step 3. See Step 3.
 
 ### REST API
 
@@ -66,9 +107,16 @@ When a call fails, these three account for nearly all of it:
 
 **Never request a page's entire node tree at once.** Real files run to tens of thousands of nodes and the context window blows instantly. Failing here is this skill's most common failure mode.
 
-Cap the depth and take only the top-level frame list of **the one page you are working on** — `GET /v1/files/{key}/nodes?ids={pageId}&depth=2` on the REST API.
+On REST, cap the depth and take only the top-level frame list of **the one page you are working on** — `GET /v1/files/{key}/nodes?ids={pageId}&depth=2`.
+
+**MCP has no depth cap, so isolate the call instead.** Hand `get_metadata` for the page to a subagent whose only job is to hand back the top-level frame list — ID, name, coordinates, size, nothing nested. The tens of thousands of tokens stay in the subagent and never reach you. If subagents are not available and there is no REST token either, say that plainly and get the user to name the specific frames they care about. Do not call `get_metadata` on a page and hope.
 
 Record only this per frame: node ID, name, coordinates, size.
+
+Two things about the tree, both of which bite later:
+
+- **Coordinates are relative to the parent.** Only the top-level frames carry absolute canvas coordinates — which is exactly what Step 2 needs, so read placement off *those* and not off anything nested
+- **Hidden nodes are in the tree** (`hidden="true"`). Keep them out of the frame count here. They matter in Step 3 as conditional elements, not before
 
 Then show the user the inventory and confirm scope:
 
@@ -146,6 +194,10 @@ That list is the one `references/gap-checklist.md` § 1 checks against, so Step 
 The split exists for the diff, not for the reader. In the final document the two collapse back into one **States defined** line.
 
 Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` entry is exactly what Step 4 is hunting for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
+
+**On the MCP route this takes two calls per frame, minimum.** `get_metadata` gives you the skeleton — which text nodes exist, where, nested how. It does not give you a single character of what they say, so **Data fields displayed** and copy-vs-dummy cannot be filled from it. Call `get_design_context` on the frame for the actual strings.
+
+Use the skeleton to aim. In files whose layer names are themselves a schema — `디스크립션 > 스크린 영역, 요소 정의 > 영역 정보 > {영역명, 영역 설명}` — `get_metadata` tells you which handful of text nodes carry the content, and `get_design_context` fills only those. That is much cheaper than pulling context for the whole frame and reading around it.
 
 **Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
