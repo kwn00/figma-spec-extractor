@@ -10,6 +10,8 @@ Two things to take from it, beyond the layout:
 
 The Needs Answer section is the long one here. That is deliberate, and typical.
 
+This file is a plain four-screen flow: every board is `kind: screen`, none prints a screen ID, and none defines a grid. So the heading's ID slot and the definition-table section stay empty here — see the template in SKILL.md for their shape. An enterprise storyboard usually looks the opposite way round, with more definition boards than screens.
+
 **SKILL.md holds the canonical template.** This file is one filled-in instance of it, kept here to make the shape concrete. If the two ever disagree, SKILL.md wins — and the disagreement is a bug worth fixing.
 
 ---
@@ -149,6 +151,12 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 | 잔여 할부금 | 2 | 정의 안 됨 — 확인 필요 |
 | 정산 합계 | 2 | 정의 안 됨 — 확인 필요 |
 | 해지 예정일 | 4 | 정의 안 됨 — 확인 필요 |
+
+## 정의 표
+
+정의 안 됨.
+
+이 파일의 네 보드는 모두 화면이고, 조건표·매트릭스·로직 표는 하나도 없다. 조립형 제품이었다면 이 섹션이 가장 두꺼웠을 자리다.
 
 ## 데이터 요구사항
 
