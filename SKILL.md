@@ -115,6 +115,8 @@ On REST, cap the depth and take only the top-level frame list of **that one page
 
 Record only this per frame: node ID, name, coordinates, size.
 
+**Chapter covers are not frames to process.** A board carrying a big title and an author name and nothing else is a divider. Keep it out of the count — six covers in a sixty-six board file is six phantom screens with nothing in them — but keep the board itself, because its title is often the only plain-language name its group has.
+
 **Watch the frame sizes for a storyboard file.** A page of 1920×1080 (or otherwise wide) frames holding what is plainly a mobile product is not a set of screens — it is a set of storyboard boards, each one a phone mockup beside a written specification table. Layer names like `디스크립션`, `설명 텍스트`, `영역명`, `description`, `spec` confirm it. Note it on the inventory: it changes what Step 3 reads first, and it usually means the file answers far more than a screen-only file would.
 
 Two things about the tree, both of which bite later:
@@ -172,8 +174,11 @@ This is the loop. Split frames into **batches of 5–8**.
 - **If subagents are available**, run batches in parallel. Hand each subagent a list of frame IDs, the extraction items below, and the return format below. Take back only that. The point is to keep raw node trees out of the main context.
 - **If not**, go sequentially, appending intermediate results to a file after each batch and discarding the raw data.
 
+**First decide what the board is.** A storyboard page is not a stack of screens — a good share of its boards are documents *about* the screens: flowcharts, exposure matrices, card-type definitions, button-logic tables, chapter covers. Sixty-six boards can hold six screens. Get this wrong and the rest of the extraction is filled in against the wrong shape.
+
 Per frame, extract:
 
+- What the board is (`kind`) and, if it carries one, its screen ID
 - Screen name and purpose (one line)
 - **Data fields displayed** — the most important item. This is what gets checked against the API spec later
 - User actions (buttons, inputs, gestures) and the resulting screen for each, marking any that leave this feature entirely
@@ -189,6 +194,8 @@ Per frame, extract:
 
 ```yaml
 - node_id: "45:678"
+  kind: screen                   # screen · definition · cover
+  screen_id: "MW01"              # the ID printed on the board, if there is one
   name: "해지_01_회선선택"        # exactly as in the file, never translated
   purpose: "..."
   data_fields:
@@ -209,6 +216,7 @@ Per frame, extract:
   terms: ["준회원", "결합"]        # domain words this screen uses, exactly as written
   copy: ["해지 시 남은 혜택이 사라집니다"]   # sentences shown to the user, quoted whole
   spec_notes: ["..."]            # quoted from the frame's description table, if it has one
+  matrix: {...}                  # a grid the board defines — shape below
   repeats: "회선 카드 ×3, same structure"
   evidence: strong               # weak = layer names meaningless, read off the screenshot
   unread: "..."                  # why, if the frame could not be read at all
@@ -260,11 +268,49 @@ list · form · submit · money · permission · external · native · composed
 
 Like `states_defined`, this exists so Step 4 can look sections up instead of judging them. `references/gap-checklist.md` § 2, 3, 6, 7, 9, 10 and 11 each hang off one of these, so a missing trait means a whole checklist section is silently skipped for that screen. Mark a trait when it plausibly applies — a false `list` costs one question the user skips, a missing one costs a section nobody notices was never asked.
 
+`kind` takes **only** these values:
+
+```
+screen · definition · cover
+```
+
+- `screen` — a board drawing something the user looks at. Everything else in this schema assumes this
+- `definition` — a board *about* the product rather than a picture of it: a flowchart, an exposure matrix, a card-type table, button logic, a term list. It has no states, no `shown_when`, no `data_fields`, and **their absence is not a gap** — see Step 4
+- `cover` — a chapter title board, usually a heading and an author name and nothing else. Keep it out of the frame count. Its title is often the only plain-language name a group of boards has, so read it
+
+A `definition` board takes a reduced shape, plus whatever it defines:
+
+```yaml
+- node_id: "45:200"
+  kind: definition
+  name: "main_01_2"
+  defines: "회선·요금제별 카드 노출 여부"   # one line: what this board settles
+  matrix: {...}
+  spec_notes: ["..."]
+```
+
+**Reduced does not mean lesser.** On an enterprise storyboard the definition boards usually carry more of the real specification than the screens do — the screens show one arrangement, the definition boards say which arrangement each customer gets. Give them the same care, and read their tables the same way you read a description table.
+
+`screen_id` is whatever the board prints as its own identifier — `MW01`, `HOME-03`, `A-2-1`. It is the key that ties this document to the code, the QA cases, and the tracker, and it is the single most useful thing you can carry out of the file for someone checking work that already exists. Quote it exactly; never construct one.
+
 `shown_when` is the screen's entry *condition*, not its entry *path*. § 5 asks which screens lead here; this asks who is allowed to see it at all — logged out, an 준회원 account, a suspended line, a first visit. A file that draws five near-identical screens named `main_03_1` … `main_03_5` is drawing one screen with five conditions, and a spec that lists them as five screens has thrown the condition away — the one thing a developer needs. Read the condition off the frame name, the description table, or the differences between the frames, and write `not defined` when none of those say.
 
 `terms` collects the domain words the screen uses — `준회원`, `일시정지`, `결합`, `대표회선`, `당겨쓰기`. Take the word exactly as written and do not translate or gloss it. You are collecting the vocabulary, not defining it: a definition that is not in the file is not yours to write.
 
 **A word can be both a term and a field label, and that is fine — the two ask different questions.** `회선번호` is a field and nothing else: you need to know where the value comes from. `위약금` is a field *and* a term: you need to know where the value comes from **and** what the word means, and the second is not answered by the first. Put a label in `terms` when a developer who did not know the word would build it wrong. Leave out labels that are self-evident from the value beside them.
+
+`matrix` is a grid the board defines — the O/X table of which card shows for which plan, a state-by-role table, a button-logic table. **On a composed product this table is the specification**, and paraphrasing it into prose destroys it.
+
+```yaml
+matrix:
+  title: "회선·요금제별 카드 노출"     # exactly as written on the board
+  rows: ["개인 5G 무제한", "..."]      # exactly as written
+  columns: ["데이터", "이번달 요금"]
+  cells: [["O", "X"], ["O", "O"]]     # row-major, marks quoted as they appear
+  complete: true
+```
+
+**Only fill `cells` from text you actually retrieved.** A 20 × 11 grid is 220 cells, and reading them off a rendered image produces a table that looks authoritative and is wrong — worse than no table, because nobody re-checks a table. If the cells did not come back as text, set `complete: false`, keep the rows and columns you do have, and say so; a named grid you could not read is a finding, not a failure to hide. Never infer a cell from the ones around it.
 
 `copy` is the sentences the product says to the user, quoted whole and unedited — guidance text, warnings, empty-state lines, error messages, confirmations. Not labels and not data values; those are already in `data_fields` and `actions`. Mark dummy copy the same way you mark dummy data.
 
@@ -289,6 +335,10 @@ Describe repeated components (list items and the like) once, and note that they 
 ### Step 4: Merge and find the gaps
 
 After merging the batch results, read `references/gap-checklist.md`. That file only needs to be read at this step.
+
+**Diff only `kind: screen` boards.** A flowchart has no loading state and a chapter cover has no data fields, so running the screen diffs over them manufactures questions that cannot be answered and should never have been asked — "the flowchart does not define an error state" is the same failure as reporting a variant-drawn state as missing, and it is easier to produce by accident. On a `definition` board the absent fields are absent by nature, not by omission. What a definition board *can* be short of is its own content: a matrix with `complete: false`, or a `defines` line you could not fill.
+
+**A `matrix` answers questions, so ask them only if it did not.** A grid that says which blocks appear for which segment has settled § 11's "where the block list and its order come from" and § 6's segment item, exactly the way `spec_notes` settles what it covers. Reproduce the grid and move on. Publishing the table and then asking what the table says is the same wasted question in a more embarrassing form.
 
 **Apply `spec_notes` before you diff anything.** A frame that came back with a description table has already answered some of what the checklist is about to ask. Fold those answers into the screen's record first — a note saying "결합 회선 미노출" defines a conditional, "조회 실패 시 카드 숨김" defines an error behavior — and only then look for what is left. Skip this and the file's own answers get asked back to its author.
 
@@ -365,7 +415,7 @@ The ⚠️ line below is written for a file of screens. When the file is a story
 
 ## Screens
 
-### 1. {Screen name} `{node-id}`
+### 1. {Screen name} `{screen-id, if the board prints one}` · `{node-id}`
 **Purpose**: {one line}
 **Shown when**: {condition — omit the line when no screen in the feature states one}
 
@@ -401,6 +451,18 @@ Domain words the design uses. **Definitions are not extracted** — a word with 
 |---|---|---|
 | 준회원 | Screens 1, 2 | Not defined — see Needs Answer |
 | 결합 | Screen 2 | "2회선 이상 묶음 할인" (from the description table) |
+
+## Definition tables
+Every grid the file defines, reproduced — not summarised. On a composed product these carry more of the specification than the screen descriptions do.
+
+**회선·요금제별 카드 노출** (`main_01_2`)
+
+| | 데이터 | 이번달 요금 |
+|---|---|---|
+| 개인 5G 무제한 | O | O |
+| 개인 LTE | O | X |
+
+A grid whose cells could not be retrieved as text says so — rows, columns, and "cells not retrieved" — and goes to `Needs Answer`. It never gets filled in by eye.
 
 ## Data requirements
 Every data field across all screens, deduplicated. The list to check against the backend.
@@ -448,6 +510,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 
 An action that ends the feature says so in **Next screen** — `Leaves this feature — 약관 전문 (external)`, or `Leaves this feature — ?` when the file does not say where. No extra column: what the reader needs is that the flow stops here, and that fits where the destination already goes.
 
+**`screen_id`** goes in the heading whenever the board printed one. It is the key a reader uses to find this screen in the code, the test cases, and the tracker, and carrying it costs nothing. Where a `Needs Answer` item is about one screen or one card, put that identifier in the question too — the reader can then check it in seconds instead of taking it to a meeting.
+
 **Shown when** appears per screen only where it says something. When no screen in the feature states a condition, drop the line from every screen and say it once in **Who sees what** — four screens each repeating "Not defined" is the repetition the dedupe rule exists to stop, and it buries the one screen that *does* carry a condition when there is one.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
@@ -479,6 +543,8 @@ The sentence around it follows the request language. What sits inside the quotes
 
 - Request an entire node tree at once (context explosion)
 - Guess at states that were never drawn
+- Run the screen diffs over a flowchart or a cover and report what it "lacks"
+- Fill a matrix cell you could not read as text
 - Write a definition for a term the file never defines
 - Invent an API field name — the design has none, and the reader will search for whatever you write
 - Read a storyboard's phone mockup and skip the description table beside it
