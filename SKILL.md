@@ -137,7 +137,7 @@ Process all of them, or just one group?
 
 Frame names are quoted **exactly as they appear in the file** — never translated. See [Language](#language).
 
-Ask one more thing while you have their attention: **is this feature already built?** One word — shipped, in progress, or not started — changes who the output is for. Record it; Step 5 uses it.
+Ask one more thing while you have their attention: **is this feature already built?** One word — shipped, in progress, or not started — changes who the output is for. Record it; Step 5 uses it. **No answer means treat it as built**, here as everywhere else in this step: the warning it triggers costs one line if you are wrong, and omitting it costs the credibility of the whole question list if you are.
 
 Past 40 frames, **push** the user to narrow the scope. Narrow and accurate beats broad and shallow.
 
@@ -242,6 +242,8 @@ That case goes in `states_unconfirmed`, not in either of the other two. Confirme
 in_app · webview_url · native_bridge · not_defined
 ```
 
+`type` describes how the action *navigates*, so it belongs only on actions that go somewhere. An element that changes state in place — a checkbox, a radio, a card that becomes selected — has no `next` and takes no `type`; leave both off rather than inventing a value for staying put.
+
 **`not_defined` is the expected answer and the point of the field.** Figma almost never says whether a button routes inside the app, lands on a legacy webview URL, or calls across a native bridge, and the three are completely different work. The field exists to surface that the decision is unmade — so leave it `not_defined` unless the file actually says otherwise (a prototype link to a frame in this file is `in_app`; a description table naming a URL or a bridge channel is what it names). Filling it by inference from the button's label is the guess this skill exists to prevent.
 
 `traits` takes **only** these values, and marks what *kind* of screen this is:
@@ -256,7 +258,7 @@ list · form · submit · money · permission · external · native · composed
 - `money` — an amount, a fee, a balance, or a calculation is shown
 - `permission` — visibility or content depends on login, role, or ownership
 - `external` — an external app, payment, or auth provider is involved
-- `native` — the frame draws app chrome (header, tab bar, GNB) or a device capability (camera, biometrics, push, share, shake) that a web layer cannot own by itself
+- `native` — the screen reaches for the device: camera, biometrics, push permission, share sheet, file picker, shake, clipboard, location. **Not** for the header and tab bar every mobile frame draws — that ownership question is § 8, asked once for the feature, and marking every screen `native` for it buys seven questions per screen and answers none
 - `composed` — the screen is an assembly of independently loaded blocks (cards, modules, widgets) rather than one thing that succeeds or fails as a unit
 
 Like `states_defined`, this exists so Step 4 can look sections up instead of judging them. `references/gap-checklist.md` § 2, 3, 6, 7, 9, 10 and 11 each hang off one of these, so a missing trait means a whole checklist section is silently skipped for that screen. Mark a trait when it plausibly applies — a false `list` costs one question the user skips, a missing one costs a section nobody notices was never asked.
@@ -269,7 +271,9 @@ Use the skeleton to aim: `get_metadata` tells you which handful of text nodes ca
 
 **On a storyboard frame, read the description table before the mockup.** Not for cost — because that table is the spec, and the mockup is an illustration of it. Enterprise files routinely put the real product thinking there: when a block is hidden, which API feeds it, what happens on failure, which segments see what. Skim the phone mockup and you will send the user off to ask a question the file answered two columns to the right. That is the same failure as reporting a variant-drawn state as missing, and it is the more common of the two in files like this.
 
-Pull the table's text with `get_design_context` (MCP) or `characters` (REST) **first**, and let it drive what you look for in the mockup — not the other way round. Carry what it says into `spec_notes`, quoted rather than paraphrased. Anything the table answers is **defined**: it goes in the spec body and must not reappear in `Needs Answer`.
+The order is skeleton, then table, then mockup — and the middle step is still aimed, not a whole-frame pull. `get_metadata` (or `depth=2`) shows you which subtree holds the table; fetch the strings for *those* nodes with `get_design_context` or `characters`, and let what they say drive what you then look for in the mockup. Pulling context for the entire board to find the table is the context explosion Step 1 exists to prevent — on these frames it is the single most expensive call in the workflow.
+
+Carry what the table says into `spec_notes`, quoted rather than paraphrased. Anything it answers is **defined**: it goes in the spec body and must not reappear in `Needs Answer`.
 
 Where the table and the mockup disagree, neither wins silently. Record both and raise it — a table saying "결합 회선은 미노출" against a mockup drawing the block is a real question for the author, and often the most valuable thing in the extraction.
 
@@ -324,6 +328,8 @@ the codebase may — check there before taking any of them to the product owner.
 ```
 
 Keep the questions themselves unchanged. The warning is the whole fix: it costs one line and it stops the meeting where four of seven blockers turn out to have shipped months ago.
+
+Like every other line of the output, it is written in the request's language — the English above is this document's language, not the spec's. See [Language](#language).
 
 ## Output format
 
@@ -389,7 +395,7 @@ Questions for the product owner and designer. Ordered by what must be answered b
 {Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
 
-**Type** is in-app route / webview URL / native bridge. A column of "Not defined" is the correct output when the file does not say, and it is doing its job — it puts three very different pieces of work in front of the reader as an open decision instead of hiding them behind an arrow.
+**Type** is in-app route / webview URL / native bridge, and it is blank for an action that does not navigate. A column of "Not defined" is the correct output when the file does not say, and it is doing its job — it puts three very different pieces of work in front of the reader as an open decision instead of hiding them behind an arrow.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 

@@ -15,9 +15,9 @@ Not every section applies to every screen — attaching a pagination question to
 | 5. Flow and navigation | every screen |
 | 6. Permissions and auth | `traits: permission` |
 | 7. Business rules | `traits: submit` or `traits: money` |
-| 8. Platform | the feature as a whole, once — not per screen |
+| 8. Platform and app shell | the feature as a whole, once — not per screen |
 | 9. External integrations | `traits: external` |
-| 10. Native and webview boundary | `traits: native` |
+| 10. Device capabilities and native bridges | `traits: native` |
 | 11. Composed screens | `traits: composed` |
 
 Work through every section a screen selects. A section nothing selects is skipped. If a screen's record has no `traits` key at all, that is a Step 3 omission, not a screen with no traits — infer the traits from its `data_fields` and `actions` before continuing, and note it in Extraction notes.
@@ -91,7 +91,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Whether deep-link entry is allowed
 - [ ] Where the user lands after success
 - [ ] Cancel and close behavior (does it need a confirmation modal)
-- [ ] For each action, which kind of navigation it is — in-app route, webview URL, or native bridge call
+- [ ] For each action that navigates, which kind it is — in-app route, webview URL, or native bridge call
 
 ## 6. Permissions and auth  —  `traits: permission`
 
@@ -112,12 +112,18 @@ The area most often missing wholesale from a spec. You can never learn it from t
 - [ ] How duplicate submissions are handled, and the button's state while one is in flight
 - [ ] How amounts are calculated, and the rounding rule
 
-## 8. Platform  —  once per feature
+## 8. Platform and app shell  —  once per feature
 
 - [ ] Responsive breakpoints (only mobile screens exist — what about desktop?)
 - [ ] iOS / Android differences
 - [ ] Dark mode
 - [ ] Accessibility — screen reader labels, anything conveyed by color alone
+
+Every mobile frame in Figma draws a status bar, a header, and a tab bar, and in a hybrid app most of that is not the web layer's to build. The file cannot show the seam, so ask once for the whole feature — not per screen, since the answer does not change between them:
+
+- [ ] Which parts of these frames the webview renders and which the native shell owns (status bar, header, tab bar / GNB, floating buttons)
+- [ ] Whether the web layer can change what the shell shows — a title, a badge, a back arrow — and through what
+- [ ] Who owns the back gesture, and what back means on the first screen of the flow
 
 ## 9. External integrations  —  `traits: external`
 
@@ -126,18 +132,15 @@ The area most often missing wholesale from a spec. You can never learn it from t
 - [ ] Timeout thresholds and what shows when one is hit
 - [ ] Whether a retry is possible
 
-## 10. Native and webview boundary  —  `traits: native`
+## 10. Device capabilities and native bridges  —  `traits: native`
 
-Figma draws one canvas. A hybrid app does not render one canvas — a native shell owns some of those pixels and a webview owns the rest, and the file cannot show you where the seam is. Nothing here is inferable from the design; all of it has to be asked.
+A screen that needs the camera, the fingerprint reader, or the push permission cannot be built from the drawing alone: someone has to decide whether the web layer does it or hands off to native, and Figma never says. § 8 asks who owns the app chrome, once for the whole feature. § 9 covers leaving for another app entirely. This section is about one screen reaching for the device.
 
-§ 9 covers leaving for another app and coming back. This section is about the seam inside your own app.
-
-- [ ] Which parts of this frame the webview renders, and which the native shell owns (status bar, header, tab bar / GNB, floating buttons)
-- [ ] Whether a device capability drawn here is implemented in the webview or delegated over a bridge — camera, biometrics, push, share sheet, file picker, shake, clipboard, location
+- [ ] Whether the capability is implemented in the webview or delegated over a bridge — camera, biometrics, push permission, share sheet, file picker, shake, clipboard, location
 - [ ] When delegated, whether the destination is a native screen or a separate full-screen webview route
 - [ ] How the result comes back, and what the calling screen must refresh when it does
-- [ ] Who owns the back gesture on this screen, and where back goes from a delegated screen
-- [ ] Whether this screen can be entered directly by deep link, bypassing the shell that normally sets it up
+- [ ] Where back goes from the delegated screen, and what the user sees if they cancel it (§ 8 covers back on the flow itself)
+- [ ] If a deep link can land here (§ 5), whether the shell state this screen depends on is set up on that path
 - [ ] Minimum app version for any bridge this screen needs, and the behavior below it
 
 ## 11. Composed screens  —  `traits: composed`
@@ -150,5 +153,4 @@ A screen assembled from independently loaded blocks does not have one loading st
 - [ ] Whether a quota or rate limit exists on any block, and what it shows when hit
 - [ ] Where the block list and its order come from — fixed in the design, or served
 - [ ] When served: the default composition to use if that response is missing, partial, or names a block the client does not know
-- [ ] Whether an empty block is hidden or shown empty
 - [ ] Which blocks are mandatory, and whether the user can reorder or hide the rest — and where that is stored
