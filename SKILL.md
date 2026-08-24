@@ -21,13 +21,17 @@ Confirm how you can reach the file. **Neither route covers the whole job well**,
 
 | | Figma MCP | REST API |
 |---|---|---|
-| Inventory (Step 1) | no depth control — costly, see below | `depth=` does exactly this |
+| Inventory (Step 1) | no depth control — costly, see `access.md` | `depth=` does exactly this |
 | Text inside the screens (Step 3) | `get_design_context` | `characters` on TEXT nodes |
 | Screenshots | `get_screenshot` | `GET /v1/images` |
 
-With both available, the good split is **REST for Step 1, MCP for Step 3**. With only one, read that route's caveats below — each has a step it does badly, and neither fails loudly.
+With both available, the good split is **REST for Step 1, MCP for Step 3**. With only one, you still need that route's caveats — each has a step it does badly, and neither fails loudly.
 
-If neither is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
+**Read [`references/access.md`](references/access.md) now, for the route or routes you have.** It carries the tool arguments, the endpoint table, the error codes, and the two constraints that shape the whole workflow. The URL rules below stay here because they apply whichever route you take.
+
+If neither route is available, stop here and tell the user. Do not push ahead by guessing from a handful of screenshots.
+
+**On the MCP route, confirm a subagent can actually see the Figma tools before you rely on one.** Step 1 hands the expensive call to a subagent, and a subagent that inherited no Figma tools fails the whole attempt rather than part of it. Ask one to report which Figma tools it has before giving it work. If none can see them, fall back to REST, or ask the user to name the frames — do not keep trying subagent types blindly.
 
 ### Parsing the URL
 
@@ -49,65 +53,13 @@ Skip this and the API answers `{"nodes": {}}`. That is not an error — it is an
 
 This is a REST rule only. MCP takes either form.
 
-### Figma MCP
-
-Tools are prefixed `mcp__plugin_figma_figma__`. Four of them matter here:
-
-| Tool | Returns | Watch for |
-|---|---|---|
-| `get_metadata` | node tree as XML — `id · type · name · x · y · width · height` | **No text content.** No depth limit |
-| `get_design_context` | reference code, screenshot, and metadata for one node | Requires loading its own `figma-design-to-code` guidance first — the tool says so and means it |
-| `get_screenshot` | PNG render | Works on `/design/`, `/board/`, `/slides/` alike |
-| `get_variable_defs` | variables and tokens | |
-
-Arguments are `fileKey` (required) and `nodeId` (optional). Nothing depends on what is selected in the desktop app, so a URL is enough on its own. Responses do report the user's current selection at the top — useful for confirming you and the user are looking at the same screen, not something to depend on.
-
-**Omit `nodeId` and `get_metadata` returns the file's top-level page list** instead of a tree. That is the entry point when you do not yet know which page you want. Never send an empty string or an ID you guessed.
-
-`get_metadata` is `/design/` only.
-
-Two constraints shape the whole workflow on this route:
-
-**1. `get_metadata` has no depth parameter.** It returns the entire recursive subtree, every time. A single 1920×1080 frame measured 424 nodes and 56 KB at 13 levels deep; a page holding thirty of those is far past what the main context can take. See Step 1 for how to call it anyway.
-
-**2. `get_metadata` does not return text.** It gives you the layer's *name*, never the string inside it:
-
-```xml
-<text id="5060:78819" name="영역명 텍스트" x="29" y="0" width="170" height="25" />
-```
-
-That says a text node exists and nothing whatsoever about what it says. Since **Data fields displayed** is the single most important thing this skill extracts, `get_metadata` alone can never complete Step 3. See Step 3.
-
-### REST API
-
-**Token**: check the environment for `FIGMA_TOKEN` first. Ask the user only if it is not there — and when you ask, say they can set the variable instead of pasting the token into the conversation. Header is `X-Figma-Token: {token}`. Never echo it back, print it inside a command you show the user, or write it into a file.
-
-Getting to the right page takes two calls. The node ID in the URL usually points at a frame, not at the page holding it.
-
-| What you need | Call |
-|---|---|
-| Page list | `GET /v1/files/{key}?depth=1` |
-| Frames on one page (Step 1) | `GET /v1/files/{key}/nodes?ids={pageId}&depth=2` |
-| One frame's subtree (Step 3) | `GET /v1/files/{key}/nodes?ids=45:678&depth=2` |
-| Screenshot | `GET /v1/images/{key}?ids=45:678&format=png` |
-
-**Do not reach for `GET /v1/files/{key}?depth=2` to build the inventory.** It returns the top-level frames of *every* page in the file. On a file with ten pages that is the context explosion Step 1 exists to prevent.
-
-`ids` is required on `/nodes` — without it the call 400s rather than returning the whole file. Batch IDs comma-separated, and raise `depth` only for the frames you are actually reading.
-
-When a call fails, these three account for nearly all of it:
-
-- `403` — token missing, wrong, or without access to this file. Not worth a retry
-- `404` — bad file key, or the token's account cannot see the file
-- `200` with `{"nodes": {}}` — the node ID did not resolve. Almost always the hyphen, above
-
 ## Workflow
 
 ### Step 1: Skim shallow, build an inventory
 
 **Never request a page's entire node tree at once.** Real files run to tens of thousands of nodes and the context window blows instantly. Failing here is this skill's most common failure mode.
 
-**First settle which page you are working on.** This comes before either route below. The page list (`?depth=1`, or `get_metadata` with no `nodeId`) is cheap, so always look at it. A URL with a `node-id` resolves the question — that frame's page is the page. Without one, or when the list holds several plausible candidates for the same feature — `Mobile` / `Desktop`, `v1` / `v2`, `Design` / `Archive` — **ask which, and offer to do more than one.** A feature split across `Mobile` and `Desktop` pages is ordinary; processing whichever page happened to sort first, silently, is how the spec ends up half a feature. When you do cover several pages, keep the frame inventory per page — Step 2 needs to know that two similar screens came from different pages rather than being a duplicate.
+**First settle which page you are working on.** This comes before either route below. **A page list that comes back empty, or holding one entry like `📕 Cover` when the file plainly has more, is not the file's page list — it is a bad answer that looks like a good one.** When the URL carries a `node-id`, stop trusting the list and enter through that node directly; when it does not, tell the user what you got and ask which page they mean rather than processing the one page you were handed. The page list (`?depth=1`, or `get_metadata` with no `nodeId`) is cheap, so always look at it. A URL with a `node-id` resolves the question — that frame's page is the page. Without one, or when the list holds several plausible candidates for the same feature — `Mobile` / `Desktop`, `v1` / `v2`, `Design` / `Archive` — **ask which, and offer to do more than one.** A feature split across `Mobile` and `Desktop` pages is ordinary; processing whichever page happened to sort first, silently, is how the spec ends up half a feature. When you do cover several pages, keep the frame inventory per page — Step 2 needs to know that two similar screens came from different pages rather than being a duplicate.
 
 On REST, cap the depth and take only the top-level frame list of **that one page** — `GET /v1/files/{key}/nodes?ids={pageId}&depth=2`.
 
@@ -115,14 +67,18 @@ On REST, cap the depth and take only the top-level frame list of **that one page
 
 Record only this per frame: node ID, name, coordinates, size.
 
+**Look for a change-log board.** Files often carry a `History`, `변경이력`, or `Change Log` board. Take the file version, the date, and the last three to five entries: the version and date go in the document header so a reader knows how fresh this is, and the recent entries tell you which parts of the file moved lately — which is exactly where the design and whatever exists in code are most likely to have drifted apart.
+
 **Chapter covers are not frames to process.** A board carrying a big title and an author name and nothing else is a divider. Keep it out of the count — six covers in a sixty-six board file is six phantom screens with nothing in them — but keep the board itself, because its title is often the only plain-language name its group has.
 
-**Watch the frame sizes for a storyboard file.** A page of 1920×1080 (or otherwise wide) frames holding what is plainly a mobile product is not a set of screens — it is a set of storyboard boards, each one a phone mockup beside a written specification table. Layer names like `디스크립션`, `설명 텍스트`, `영역명`, `description`, `spec` confirm it. Note it on the inventory: it changes what Step 3 reads first, and it usually means the file answers far more than a screen-only file would.
+**Watch the frame sizes for a storyboard file.** A page of 1920×1080 (or otherwise wide) frames holding what is plainly a mobile product is not a set of screens — it is a set of storyboard boards, each one a phone mockup beside a written specification table. Frame size is the only signal the inventory itself carries, and it is not enough to be sure. **Open one board as a sample and look**: layer names like `디스크립션`, `설명 텍스트`, `영역명`, `description`, `spec` settle it, and the sample also shows you how that file's description tables are built, which is what Step 3 needs. One board is cheap; guessing wrong changes what every later batch reads first. Note the answer on the inventory: it changes what Step 3 reads first, and it usually means the file answers far more than a screen-only file would.
 
 Two things about the tree, both of which bite later:
 
 - **Coordinates are relative to the parent.** Only the top-level frames carry absolute canvas coordinates — which is exactly what Step 2 needs, so read placement off *those* and not off anything nested
 - **Hidden nodes are in the tree** (`hidden="true"`). Keep them out of the frame count here. They matter in Step 3 as conditional elements, not before
+
+**Get names for the groups before you ask.** The example below reads well because `해지_01_회선선택` says what it is. Real files often name every board `main_01_2`, and a list of those tells the user nothing — they cannot choose, and neither can you. Read the chapter cover titles first, or open one board per group and read its heading. That one cheap round turns `main_01` into `홈 콘텐츠별 정의`, which is the difference between a question the user can answer and one they cannot.
 
 Then show the user the inventory and confirm scope:
 
@@ -182,7 +138,7 @@ Per frame, extract:
 - Screen name and purpose (one line)
 - **Data fields displayed** — the most important item. This is what gets checked against the API spec later
 - User actions (buttons, inputs, gestures) and the resulting screen for each, marking any that leave this feature entirely
-- Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
+- Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy) — **and watch for the file's own notation**: a value written `%8초%`, `명세서%1%건`, or `▲ %10,000%원` is using a convention this file invented. Find its legend; if there is none, do not decide whether it is a placeholder, a CMS value, or a hard-coded constant — raise the convention itself as a question. One of those turned out to be a front-end constant, not content, and the spec had no way to tell
 - States the screen defines — including any drawn as a component variant, and separately any you suspect but could not confirm
 - What kind of screen it is (`traits`), which is what selects the checklist sections in Step 4
 - Who this screen is for and when it appears (`shown_when`) — a condition, not a route
@@ -401,6 +357,8 @@ When writing a gap, be specific about **which screen is missing what**. "Needs e
 
 Merge only questions with the same answer. Screen 2's "what happens when the fee lookup fails" is not Screen 1's generic error state — collapsing those loses the specific one, which was the more valuable of the two.
 
+**A `composed` feature routinely runs eight to ten 🔴, and that is expected.** Composition policy alone — case selection, independent loading, per-block failure, order, user editing — produces five or six before anything else is counted. Do not squeeze those into seven; the count below is a target for an ordinary feature, not a ceiling to force.
+
 **Aim for about seven 🔴 per spec file.** Blockers are what the user takes into the meeting, and a list of twenty has no blockers in it. The count is per output file, so a file covering three features gets its own seven — split by feature before you start demoting.
 
 If more than seven still survive after deduplication, re-read them: usually two or three are edge cases wearing a blocker's clothes, and moving those is the fix. **But do not demote a real blocker to hit the number.** A file that genuinely leaves twelve things unbuildable has twelve blockers; keep them, and say in Extraction notes that the count is unusually high and why. Losing one true blocker costs more than a list two items too long. 🟡 and 🟢 have no cap, but the same dedupe rule.
@@ -408,6 +366,8 @@ If more than seven still survive after deduplication, re-read them: usually two 
 ### Step 5: Output
 
 Save as `{feature-name}-spec.md`. Split into multiple files if there are multiple features.
+
+**If you narrowed the scope, say what you left out.** Step 1 pushes hard toward narrowing and this is where that gets paid for: the boards you skipped are often the ones that answer the questions you are about to ask. Name the groups you excluded, and say plainly that answers to some of these questions are probably in them. A reader who knows that checks there first; a reader who does not takes the whole list to the designer.
 
 **If the feature is already built, say so at the top of `Needs Answer`.** The section is addressed to the product owner and the designer, and that address is wrong the moment an implementation exists: developers will have answered a good share of these questions in code already, and questions with answers are exactly what destroys the list's credibility. You are not reading the code — this skill reads Figma — so do not try to say which ones. Say that some of them will be, and where to look first:
 
