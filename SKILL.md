@@ -176,7 +176,7 @@ Per frame, extract:
 
 - Screen name and purpose (one line)
 - **Data fields displayed** — the most important item. This is what gets checked against the API spec later
-- User actions (buttons, inputs, gestures) and the resulting screen for each
+- User actions (buttons, inputs, gestures) and the resulting screen for each, marking any that leave this feature entirely
 - Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
 - States the screen defines — including any drawn as a component variant, and separately any you suspect but could not confirm
 - What kind of screen it is (`traits`), which is what selects the checklist sections in Step 4
@@ -197,7 +197,7 @@ Per frame, extract:
     - element: "[다음]"           # exactly as in the file
       behavior: "..."
       next: "45:912"             # or "not defined" — see Step 2 on prototype links
-      type: not_defined          # fixed vocabulary, below — not_defined is the norm
+      leaves_flow: unknown       # true when the action ends this feature's flow
   states_defined: [default]      # fixed vocabulary, below
   states_other: ["카드 선택됨"]   # screen-specific states, named as in the file
   states_unconfirmed: ["..."]    # suspected but not verified — never printed as defined
@@ -236,15 +236,7 @@ That case goes in `states_unconfirmed`, not in either of the other two. Confirme
 
 **`states_unconfirmed` never reaches the States defined line.** The other two both assert something — "this state is defined", "defined, under this name". A state you merely suspect asserts neither, and filing it with them prints a guess as a fact, which is the one thing this skill must never do. It routes to `Needs Answer` 🟡 as a question — "the 회선 카드 component has a `Disabled` variant; is it used on this screen?" — and to Extraction notes.
 
-`type` on an action takes **only** these values:
-
-```
-in_app · webview_url · native_bridge · not_defined
-```
-
-`type` describes how the action *navigates*, so it belongs only on actions that go somewhere. An element that changes state in place — a checkbox, a radio, a card that becomes selected — has no `next` and takes no `type`; leave both off rather than inventing a value for staying put.
-
-**`not_defined` is the expected answer and the point of the field.** Figma almost never says whether a button routes inside the app, lands on a legacy webview URL, or calls across a native bridge, and the three are completely different work. The field exists to surface that the decision is unmade — so leave it `not_defined` unless the file actually says otherwise (a prototype link to a frame in this file is `in_app`; a description table naming a URL or a bridge channel is what it names). Filling it by inference from the button's label is the guess this skill exists to prevent.
+`leaves_flow` takes `true`, `false`, or `unknown`. It marks an action that ends this feature — the user lands somewhere this spec does not cover. It changes what back means, where they resume, and whether they come back at all, so it is a product question and it belongs here. **How** the app gets there — an in-app route, a webview URL, a bridge call — is not: that is decided by the codebase, not by the design, and a spec that guesses at it is guessing. Leave it `unknown` unless the file says; an element that changes state in place takes neither `next` nor `leaves_flow`.
 
 `traits` takes **only** these values, and marks what *kind* of screen this is:
 
@@ -362,10 +354,10 @@ The ⚠️ line below is written for a file of screens. When the file is a story
 | 위약금 | 42,000원 | likely dummy |
 
 **Actions**
-| Element | Behavior | Next screen | Type |
-|---|---|---|---|
-| [다음] | Go to reason selection | Screen 2 | Not defined |
-| [취소] | Not defined | ? | Not defined |
+| Element | Behavior | Next screen |
+|---|---|---|
+| [다음] | Go to reason selection | Screen 2 |
+| [취소] | Not defined | ? |
 
 **States defined**: default, loading
 **States not defined**: error, empty
@@ -394,8 +386,6 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ## Extraction notes
 {Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
-
-**Type** is in-app route / webview URL / native bridge, and it is blank for an action that does not navigate. A column of "Not defined" is the correct output when the file does not say, and it is doing its job — it puts three very different pieces of work in front of the reader as an open decision instead of hiding them behind an arrow.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 
@@ -427,7 +417,6 @@ The sentence around it follows the request language. What sits inside the quotes
 - Request an entire node tree at once (context explosion)
 - Guess at states that were never drawn
 - Read a storyboard's phone mockup and skip the description table beside it
-- Infer an action's type from its label
 - Call a state undefined without checking whether it exists as a component variant
 - Ask the same question once per screen instead of listing the screens on one line
 - Print a state you only suspect on the **States defined** line

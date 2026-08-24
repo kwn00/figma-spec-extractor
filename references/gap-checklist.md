@@ -91,7 +91,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Whether deep-link entry is allowed
 - [ ] Where the user lands after success
 - [ ] Cancel and close behavior (does it need a confirmation modal)
-- [ ] For each action that navigates, which kind it is — in-app route, webview URL, or native bridge call
+- [ ] Which actions leave this feature entirely, and whether the user is expected back
 
 ## 6. Permissions and auth  —  `traits: permission`
 
@@ -122,7 +122,7 @@ The area most often missing wholesale from a spec. You can never learn it from t
 Every mobile frame in Figma draws a status bar, a header, and a tab bar, and in a hybrid app most of that is not the web layer's to build. The file cannot show the seam, so ask once for the whole feature — not per screen, since the answer does not change between them:
 
 - [ ] Which parts of these frames the webview renders and which the native shell owns (status bar, header, tab bar / GNB, floating buttons)
-- [ ] Whether the web layer can change what the shell shows — a title, a badge, a back arrow — and through what
+- [ ] Whether what the shell shows changes from screen to screen — the title, a badge, whether a back arrow is there at all
 - [ ] Who owns the back gesture, and what back means on the first screen of the flow
 
 ## 9. External integrations  —  `traits: external`
@@ -132,16 +132,14 @@ Every mobile frame in Figma draws a status bar, a header, and a tab bar, and in 
 - [ ] Timeout thresholds and what shows when one is hit
 - [ ] Whether a retry is possible
 
-## 10. Device capabilities and native bridges  —  `traits: native`
+## 10. Device capabilities  —  `traits: native`
 
-A screen that needs the camera, the fingerprint reader, or the push permission cannot be built from the drawing alone: someone has to decide whether the web layer does it or hands off to native, and Figma never says. § 8 asks who owns the app chrome, once for the whole feature. § 9 covers leaving for another app entirely. This section is about one screen reaching for the device.
+A screen that asks for the camera, the fingerprint reader, or the push permission has edges the design almost never draws: the user says no, the user cancels, the device cannot do it. Whoever builds it decides how — a web API, a native bridge, a separate screen — and that is their call, not a question for the designer. What the user *sees* at each of those edges is the question, and it is undrawn.
 
-- [ ] Whether the capability is implemented in the webview or delegated over a bridge — camera, biometrics, push permission, share sheet, file picker, shake, clipboard, location
-- [ ] When delegated, whether the destination is a native screen or a separate full-screen webview route
-- [ ] How the result comes back, and what the calling screen must refresh when it does
-- [ ] Where back goes from the delegated screen, and what the user sees if they cancel it (§ 8 covers back on the flow itself)
-- [ ] If a deep link can land here (§ 5), whether the shell state this screen depends on is set up on that path
-- [ ] Minimum app version for any bridge this screen needs, and the behavior below it
+- [ ] What the screen shows when the permission is refused, and whether there is a way back from that
+- [ ] Where the user lands if they cancel or abandon the capability mid-use
+- [ ] What the calling screen refreshes when the capability returns a result
+- [ ] Whether the capability is optional — can the user complete this flow without it
 
 ## 11. Composed screens  —  `traits: composed`
 
@@ -152,5 +150,5 @@ A screen assembled from independently loaded blocks does not have one loading st
 - [ ] Whether different failures are treated differently (a scheduled-maintenance notice is not a network error)
 - [ ] Whether a quota or rate limit exists on any block, and what it shows when hit
 - [ ] Where the block list and its order come from — fixed in the design, or served
-- [ ] When served: the default composition to use if that response is missing, partial, or names a block the client does not know
+- [ ] When served: what the user sees if that response is missing or partial — a default arrangement, or nothing
 - [ ] Which blocks are mandatory, and whether the user can reorder or hide the rest — and where that is stored
