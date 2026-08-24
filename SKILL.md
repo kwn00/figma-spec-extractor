@@ -115,6 +115,8 @@ On REST, cap the depth and take only the top-level frame list of **that one page
 
 Record only this per frame: node ID, name, coordinates, size.
 
+**Watch the frame sizes for a storyboard file.** A page of 1920×1080 (or otherwise wide) frames holding what is plainly a mobile product is not a set of screens — it is a set of storyboard boards, each one a phone mockup beside a written specification table. Layer names like `디스크립션`, `설명 텍스트`, `영역명`, `description`, `spec` confirm it. Note it on the inventory: it changes what Step 3 reads first, and it usually means the file answers far more than a screen-only file would.
+
 Two things about the tree, both of which bite later:
 
 - **Coordinates are relative to the parent.** Only the top-level frames carry absolute canvas coordinates — which is exactly what Step 2 needs, so read placement off *those* and not off anything nested
@@ -134,6 +136,8 @@ Process all of them, or just one group?
 ```
 
 Frame names are quoted **exactly as they appear in the file** — never translated. See [Language](#language).
+
+Ask one more thing while you have their attention: **is this feature already built?** One word — shipped, in progress, or not started — changes who the output is for. Record it; Step 5 uses it. **No answer means treat it as built**, here as everywhere else in this step: the warning it triggers costs one line if you are wrong, and omitting it costs the credibility of the whole question list if you are.
 
 Past 40 frames, **push** the user to narrow the scope. Narrow and accurate beats broad and shallow.
 
@@ -176,6 +180,7 @@ Per frame, extract:
 - Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
 - States the screen defines — including any drawn as a component variant, and separately any you suspect but could not confirm
 - What kind of screen it is (`traits`), which is what selects the checklist sections in Step 4
+- Whatever the frame's description table says, if it has one — quoted, and read before the mockup
 - Conditional elements (hidden layers, badges, tooltips)
 
 **Every batch comes back in this shape** — subagent or sequential, same format. Step 4 merges these as they are, so a batch that invents its own layout has to be re-read.
@@ -192,11 +197,13 @@ Per frame, extract:
     - element: "[다음]"           # exactly as in the file
       behavior: "..."
       next: "45:912"             # or "not defined" — see Step 2 on prototype links
+      type: not_defined          # fixed vocabulary, below — not_defined is the norm
   states_defined: [default]      # fixed vocabulary, below
   states_other: ["카드 선택됨"]   # screen-specific states, named as in the file
   states_unconfirmed: ["..."]    # suspected but not verified — never printed as defined
   traits: [list, form]           # fixed vocabulary, below
   conditional: ["..."]           # hidden layers, badges, tooltips
+  spec_notes: ["..."]            # quoted from the frame's description table, if it has one
   repeats: "회선 카드 ×3, same structure"
   evidence: strong               # weak = layer names meaningless, read off the screenshot
   unread: "..."                  # why, if the frame could not be read at all
@@ -225,12 +232,24 @@ Variant sets do not show up as variants in a node tree — an instance node carr
 
 That case goes in `states_unconfirmed`, not in either of the other two. Confirmed on the screen → `states_defined` (+ `states_other` for the name). Suspected from a component name → `states_unconfirmed`. Absent → leave it out and let Step 4's diff catch it.
 
+**`states_defined` describes the whole screen, and only the whole screen.** It cannot say "card 3 has an error state, the screen does not" — the vocabulary has no room for it. On a screen assembled from independently loaded blocks that limitation matters, because failure there is per block: one card hides itself, another shows a retry, a third is replaced by a notice. Mark the screen `composed` and let § 11 of the checklist ask about the blocks; do not try to encode per-block states in `states_defined`.
+
 **`states_unconfirmed` never reaches the States defined line.** The other two both assert something — "this state is defined", "defined, under this name". A state you merely suspect asserts neither, and filing it with them prints a guess as a fact, which is the one thing this skill must never do. It routes to `Needs Answer` 🟡 as a question — "the 회선 카드 component has a `Disabled` variant; is it used on this screen?" — and to Extraction notes.
+
+`type` on an action takes **only** these values:
+
+```
+in_app · webview_url · native_bridge · not_defined
+```
+
+`type` describes how the action *navigates*, so it belongs only on actions that go somewhere. An element that changes state in place — a checkbox, a radio, a card that becomes selected — has no `next` and takes no `type`; leave both off rather than inventing a value for staying put.
+
+**`not_defined` is the expected answer and the point of the field.** Figma almost never says whether a button routes inside the app, lands on a legacy webview URL, or calls across a native bridge, and the three are completely different work. The field exists to surface that the decision is unmade — so leave it `not_defined` unless the file actually says otherwise (a prototype link to a frame in this file is `in_app`; a description table naming a URL or a bridge channel is what it names). Filling it by inference from the button's label is the guess this skill exists to prevent.
 
 `traits` takes **only** these values, and marks what *kind* of screen this is:
 
 ```
-list · form · submit · money · permission · external
+list · form · submit · money · permission · external · native · composed
 ```
 
 - `list` — repeated rows or cards backed by a collection
@@ -239,14 +258,24 @@ list · form · submit · money · permission · external
 - `money` — an amount, a fee, a balance, or a calculation is shown
 - `permission` — visibility or content depends on login, role, or ownership
 - `external` — an external app, payment, or auth provider is involved
+- `native` — the screen reaches for the device: camera, biometrics, push permission, share sheet, file picker, shake, clipboard, location. **Not** for the header and tab bar every mobile frame draws — that ownership question is § 8, asked once for the feature, and marking every screen `native` for it buys seven questions per screen and answers none
+- `composed` — the screen is an assembly of independently loaded blocks (cards, modules, widgets) rather than one thing that succeeds or fails as a unit
 
-Like `states_defined`, this exists so Step 4 can look sections up instead of judging them. `references/gap-checklist.md` § 2, 3, 6, 7 and 9 each hang off one of these, so a missing trait means a whole checklist section is silently skipped for that screen. Mark a trait when it plausibly applies — a false `list` costs one question the user skips, a missing one costs a section nobody notices was never asked.
+Like `states_defined`, this exists so Step 4 can look sections up instead of judging them. `references/gap-checklist.md` § 2, 3, 6, 7, 9, 10 and 11 each hang off one of these, so a missing trait means a whole checklist section is silently skipped for that screen. Mark a trait when it plausibly applies — a false `list` costs one question the user skips, a missing one costs a section nobody notices was never asked.
 
 Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` entry is exactly what Step 4 is hunting for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
 
 **On the MCP route this takes two calls per frame, minimum.** `get_metadata` gives you the skeleton — which text nodes exist, where, nested how. It does not give you a single character of what they say, so **Data fields displayed** and copy-vs-dummy cannot be filled from it. Call `get_design_context` on the frame for the actual strings.
 
-Use the skeleton to aim. In files whose layer names are themselves a schema — `디스크립션 > 스크린 영역, 요소 정의 > 영역 정보 > {영역명, 영역 설명}` — `get_metadata` tells you which handful of text nodes carry the content, and `get_design_context` fills only those. That is much cheaper than pulling context for the whole frame and reading around it.
+Use the skeleton to aim: `get_metadata` tells you which handful of text nodes carry content, and `get_design_context` fills only those, which is far cheaper than pulling context for the whole frame and reading around it.
+
+**On a storyboard frame, read the description table before the mockup.** Not for cost — because that table is the spec, and the mockup is an illustration of it. Enterprise files routinely put the real product thinking there: when a block is hidden, which API feeds it, what happens on failure, which segments see what. Skim the phone mockup and you will send the user off to ask a question the file answered two columns to the right. That is the same failure as reporting a variant-drawn state as missing, and it is the more common of the two in files like this.
+
+The order is skeleton, then table, then mockup — and the middle step is still aimed, not a whole-frame pull. `get_metadata` (or `depth=2`) shows you which subtree holds the table; fetch the strings for *those* nodes with `get_design_context` or `characters`, and let what they say drive what you then look for in the mockup. Pulling context for the entire board to find the table is the context explosion Step 1 exists to prevent — on these frames it is the single most expensive call in the workflow.
+
+Carry what the table says into `spec_notes`, quoted rather than paraphrased. Anything it answers is **defined**: it goes in the spec body and must not reappear in `Needs Answer`.
+
+Where the table and the mockup disagree, neither wins silently. Record both and raise it — a table saying "결합 회선은 미노출" against a mockup drawing the block is a real question for the author, and often the most valuable thing in the extraction.
 
 **Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
@@ -256,10 +285,12 @@ Describe repeated components (list items and the like) once, and note that they 
 
 After merging the batch results, read `references/gap-checklist.md`. That file only needs to be read at this step.
 
+**Apply `spec_notes` before you diff anything.** A frame that came back with a description table has already answered some of what the checklist is about to ask. Fold those answers into the screen's record first — a note saying "결합 회선 미노출" defines a conditional, "조회 실패 시 카드 숨김" defines an error behavior — and only then look for what is left. Skip this and the file's own answers get asked back to its author.
+
 Do not decide from the prose which sections apply. **Look them up.** Each screen already carries the two fields that select its sections:
 
 - `states_defined` → § 1, diffed against the fixed vocabulary
-- `traits` → § 2, 3, 6, 7, 9, per the table at the top of the checklist
+- `traits` → § 2, 3, 6, 7, 9, 10, 11, per the table at the top of the checklist
 - § 4 and § 5 apply to every screen; § 8 applies to the feature as a whole, once
 
 A section reached this way gets worked through. A section no screen selects gets skipped, and that is the whole judgment call — there is no third option where a section looked irrelevant.
@@ -287,9 +318,24 @@ If more than seven still survive after deduplication, re-read them: usually two 
 
 Save as `{feature-name}-spec.md`. Split into multiple files if there are multiple features.
 
+**If the feature is already built, say so at the top of `Needs Answer`.** The section is addressed to the product owner and the designer, and that address is wrong the moment an implementation exists: developers will have answered a good share of these questions in code already, and questions with answers are exactly what destroys the list's credibility. You are not reading the code — this skill reads Figma — so do not try to say which ones. Say that some of them will be, and where to look first:
+
+```markdown
+## Needs Answer
+
+⚠️ This feature is already implemented. Figma does not define the items below, but
+the codebase may — check there before taking any of them to the product owner.
+```
+
+Keep the questions themselves unchanged. The warning is the whole fix: it costs one line and it stops the meeting where four of seven blockers turn out to have shipped months ago.
+
+Like every other line of the output, it is written in the request's language — the English above is this document's language, not the spec's. See [Language](#language).
+
 ## Output format
 
 Follow this template. Do not delete a section that has no content — write "Not defined" instead. An empty section is itself information.
+
+The ⚠️ line below is written for a file of screens. When the file is a storyboard whose description tables carried real intent, say that instead — "Extracted from Figma storyboard boards; the description tables are quoted, the rest is read off the mockups" — because the default line understates what you had to work with, and readers use it to decide how much to trust the spec.
 
 ```markdown
 # {Feature name}
@@ -316,10 +362,10 @@ Follow this template. Do not delete a section that has no content — write "Not
 | 위약금 | 42,000원 | likely dummy |
 
 **Actions**
-| Element | Behavior | Next screen |
-|---|---|---|
-| [다음] | Go to reason selection | Screen 2 |
-| [취소] | Not defined | ? |
+| Element | Behavior | Next screen | Type |
+|---|---|---|---|
+| [다음] | Go to reason selection | Screen 2 | Not defined |
+| [취소] | Not defined | ? | Not defined |
 
 **States defined**: default, loading
 **States not defined**: error, empty
@@ -348,6 +394,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ## Extraction notes
 {Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
+
+**Type** is in-app route / webview URL / native bridge, and it is blank for an action that does not navigate. A column of "Not defined" is the correct output when the file does not say, and it is doing its job — it puts three very different pieces of work in front of the reader as an open decision instead of hiding them behind an arrow.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 
@@ -378,6 +426,8 @@ The sentence around it follows the request language. What sits inside the quotes
 
 - Request an entire node tree at once (context explosion)
 - Guess at states that were never drawn
+- Read a storyboard's phone mockup and skip the description table beside it
+- Infer an action's type from its label
 - Call a state undefined without checking whether it exists as a component variant
 - Ask the same question once per screen instead of listing the screens on one line
 - Print a state you only suspect on the **States defined** line

@@ -15,12 +15,18 @@ Not every section applies to every screen — attaching a pagination question to
 | 5. Flow and navigation | every screen |
 | 6. Permissions and auth | `traits: permission` |
 | 7. Business rules | `traits: submit` or `traits: money` |
-| 8. Platform | the feature as a whole, once — not per screen |
+| 8. Platform and app shell | the feature as a whole, once — not per screen |
 | 9. External integrations | `traits: external` |
+| 10. Device capabilities and native bridges | `traits: native` |
+| 11. Composed screens | `traits: composed` |
 
 Work through every section a screen selects. A section nothing selects is skipped. If a screen's record has no `traits` key at all, that is a Step 3 omission, not a screen with no traits — infer the traits from its `data_fields` and `actions` before continuing, and note it in Extraction notes.
 
 Within a selected section, still skip individual items that plainly cannot apply. The section-level choice is the lookup; the item-level one is yours.
+
+**Check `spec_notes` before asking anything.** A storyboard frame's description table often answers checklist items outright. An item it answers is not a gap — record the answer in the spec body and move on. Asking the file's author what the file already says is the fastest way to lose them.
+
+**Anything added to this file later hangs off a trait too.** § 1, 4 and 5 fire on every screen, so an item put there is an item every screen pays for; a rate-limit question on a confirmation screen is the noise this whole mechanism exists to prevent. A new concern gets a new trait and its own section, not a few more lines in § 1.
 
 ## How to prioritize
 
@@ -37,6 +43,8 @@ Aim for roughly seven 🔴 per output file — but never demote a real blocker j
 Applies to nearly every screen. The most common omission by far.
 
 Diff the fixed vocabulary against `states_defined`, and **trust that field over your own reading of the screen.** A state drawn as a component variant is defined even though no separate frame exists for it; Step 3 is responsible for having caught that. Reporting a state as missing when the designer drew it is worse than missing one — it costs the reader's trust in every other item here.
+
+These are whole-screen states. If the screen is `composed`, its blocks fail one at a time and § 11 asks about that — do not stretch the items below to cover it.
 
 Anything in `states_unconfirmed` is neither defined nor missing. Raise it here as a 🟡 question — "the list component has an `Empty` variant; is it used on this screen?" — and keep it out of the **States defined** line.
 
@@ -83,6 +91,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Whether deep-link entry is allowed
 - [ ] Where the user lands after success
 - [ ] Cancel and close behavior (does it need a confirmation modal)
+- [ ] For each action that navigates, which kind it is — in-app route, webview URL, or native bridge call
 
 ## 6. Permissions and auth  —  `traits: permission`
 
@@ -90,6 +99,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Session expiry
 - [ ] Whether identity verification is required, and at what point
 - [ ] Screen differences by role
+- [ ] Whether the screen's content differs by segment and not just by role — plan, tier, contract type, account status (composition itself: § 11)
 
 ## 7. Business rules  —  `traits: submit` · `money`
 
@@ -102,12 +112,18 @@ The area most often missing wholesale from a spec. You can never learn it from t
 - [ ] How duplicate submissions are handled, and the button's state while one is in flight
 - [ ] How amounts are calculated, and the rounding rule
 
-## 8. Platform  —  once per feature
+## 8. Platform and app shell  —  once per feature
 
 - [ ] Responsive breakpoints (only mobile screens exist — what about desktop?)
 - [ ] iOS / Android differences
 - [ ] Dark mode
 - [ ] Accessibility — screen reader labels, anything conveyed by color alone
+
+Every mobile frame in Figma draws a status bar, a header, and a tab bar, and in a hybrid app most of that is not the web layer's to build. The file cannot show the seam, so ask once for the whole feature — not per screen, since the answer does not change between them:
+
+- [ ] Which parts of these frames the webview renders and which the native shell owns (status bar, header, tab bar / GNB, floating buttons)
+- [ ] Whether the web layer can change what the shell shows — a title, a badge, a back arrow — and through what
+- [ ] Who owns the back gesture, and what back means on the first screen of the flow
 
 ## 9. External integrations  —  `traits: external`
 
@@ -115,3 +131,26 @@ The area most often missing wholesale from a spec. You can never learn it from t
 - [ ] Payment or auth abandoned midway
 - [ ] Timeout thresholds and what shows when one is hit
 - [ ] Whether a retry is possible
+
+## 10. Device capabilities and native bridges  —  `traits: native`
+
+A screen that needs the camera, the fingerprint reader, or the push permission cannot be built from the drawing alone: someone has to decide whether the web layer does it or hands off to native, and Figma never says. § 8 asks who owns the app chrome, once for the whole feature. § 9 covers leaving for another app entirely. This section is about one screen reaching for the device.
+
+- [ ] Whether the capability is implemented in the webview or delegated over a bridge — camera, biometrics, push permission, share sheet, file picker, shake, clipboard, location
+- [ ] When delegated, whether the destination is a native screen or a separate full-screen webview route
+- [ ] How the result comes back, and what the calling screen must refresh when it does
+- [ ] Where back goes from the delegated screen, and what the user sees if they cancel it (§ 8 covers back on the flow itself)
+- [ ] If a deep link can land here (§ 5), whether the shell state this screen depends on is set up on that path
+- [ ] Minimum app version for any bridge this screen needs, and the behavior below it
+
+## 11. Composed screens  —  `traits: composed`
+
+A screen assembled from independently loaded blocks does not have one loading state or one error state, and § 1's vocabulary cannot express that. Ask per block.
+
+- [ ] Whether blocks load independently with their own skeletons, or the screen waits for all of them
+- [ ] What a single block's failed request does — hide the block, show an inline retry, replace it with a notice, or block the whole screen
+- [ ] Whether different failures are treated differently (a scheduled-maintenance notice is not a network error)
+- [ ] Whether a quota or rate limit exists on any block, and what it shows when hit
+- [ ] Where the block list and its order come from — fixed in the design, or served
+- [ ] When served: the default composition to use if that response is missing, partial, or names a block the client does not know
+- [ ] Which blocks are mandatory, and whether the user can reorder or hide the rest — and where that is stored
