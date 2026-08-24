@@ -6,6 +6,7 @@ Two things to take from it, beyond the layout:
 
 1. **The prose is Korean because the request was Korean.** That is the rule from SKILL.md § Language, not a property of this file. An English request produces this same document in English, headings included. The English template in SKILL.md and this Korean one are the same spec in two languages — nothing about either one is the default.
 2. **The design's own text is untouched in both.** `회선번호`, `[다음]`, `5G 시그니처` stay as they are in the file, whatever language the sentences around them are in.
+3. **Questions are deduplicated across screens.** Three screens each missing a loading state produce one entry listing all three — not three entries. The screen-specific failure right below it stays separate, because it has a different answer.
 
 The Needs Answer section is the long one here. That is deliberate, and typical.
 
@@ -160,9 +161,12 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 ### 🟡 엣지 케이스 — 구현하면 반드시 만난다
 
+- [ ] 화면 1, 2, 3: 로딩 상태가 어디에도 그려져 있지 않다. 전체 스켈레톤인가 버튼 스피너인가, 세 화면이 같은 처리인가
+- [ ] 화면 1, 2, 3: 요청 실패 시 화면이 정의되지 않았다. 공통 에러 처리로 묶이는가, 화면별로 다른가
+- [ ] 화면 1: 회선 카드 컴포넌트에 `Disabled` variant가 있으나 이 화면에서 쓰이는지 확인하지 못했다. 해지 불가 회선을 표시하는 용도인가
 - [ ] 화면 1: 보유 회선이 0개일 때. 진입 자체를 막는지, 빈 화면을 보여주는지
 - [ ] 화면 1: 회선이 10개 이상일 때 스크롤인지 페이징인지. 상한이 있나
-- [ ] 화면 2: 위약금 조회가 실패하면 무엇을 보여주나. 조회 없이 진행 가능한가
+- [ ] 화면 2: 위약금 조회가 실패하면 무엇을 보여주나. 조회 없이 진행 가능한가 (위 공통 에러 항목과 답이 다를 수 있어 분리)
 - [ ] 화면 3: 사유 미선택 상태에서 [해지 신청]을 누르면. 버튼 비활성인가 에러 메시지인가
 - [ ] 화면 3: "기타" 입력란이 필수인가. 글자 수 제한은
 - [ ] 화면 3: 제출 중 버튼 상태와 중복 제출 방지
@@ -181,6 +185,7 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 - 4개 프레임 모두 `해지_NN_이름` 규칙을 따라 그룹핑 근거는 명확하다. 캔버스 배치도 좌→우 한 줄로 순서와 일치한다
 - 프로토타입 링크는 [다음] 계열 버튼에만 걸려 있다. `←`, [확인], [약관 전문 보기]는 연결이 없어 "정의 안 됨"으로 적었다. 링크를 안 건 것인지 동작이 미정인 것인지는 파일에서 구분되지 않는다
+- 화면 1의 회선 카드는 `Disabled` variant를 가진 컴포넌트의 인스턴스다. 이 화면의 인스턴스 3개는 모두 기본 variant라 해당 상태가 이 플로우에서 쓰이는지 파일만으로는 판단되지 않아, 정의된 상태로 적지 않고 확인 필요로 올렸다
 - 화면 3의 기타 입력란은 숨김 레이어로 존재한다. 조건부 노출로 보이지만 조건이 명시된 곳은 없다
 - 화면 4의 해지 예정일·접수번호는 더미로 추정했다. 형식이 그럴듯하나 다른 화면과 대조할 값이 없어 확정하지 못했다
 - 위약금 42,000원은 실제 값일 수도, 더미일 수도 있다. 요금제(5G 시그니처)와의 관계를 파일 안에서 확인할 방법이 없었다
