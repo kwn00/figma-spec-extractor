@@ -174,7 +174,7 @@ Per frame, extract:
 - **Data fields displayed** — the most important item. This is what gets checked against the API spec later
 - User actions (buttons, inputs, gestures) and the resulting screen for each
 - Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
-- States the screen defines — including any drawn as a component variant
+- States the screen defines — including any drawn as a component variant, and separately any you suspect but could not confirm
 - What kind of screen it is (`traits`), which is what selects the checklist sections in Step 4
 - Conditional elements (hidden layers, badges, tooltips)
 
@@ -348,6 +348,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ## Extraction notes
 {Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
+
+**States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 
 Note the table above: the prose is English while `회선번호`, `5G 시그니처`, and `[다음]` stay exactly as they appear in the design. That is the rule, not an inconsistency — see below.
 
