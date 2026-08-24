@@ -17,7 +17,7 @@ Not every section applies to every screen — attaching a pagination question to
 | 7. Business rules | `traits: submit` or `traits: money` |
 | 8. Platform and app shell | the feature as a whole, once — not per screen |
 | 9. External integrations | `traits: external` |
-| 10. Device capabilities and native bridges | `traits: native` |
+| 10. Device capabilities | `traits: native` |
 | 11. Composed screens | `traits: composed` |
 
 Work through every section a screen selects. A section nothing selects is skipped. If a screen's record has no `traits` key at all, that is a Step 3 omission, not a screen with no traits — infer the traits from its `data_fields` and `actions` before continuing, and note it in Extraction notes.

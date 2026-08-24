@@ -236,7 +236,7 @@ That case goes in `states_unconfirmed`, not in either of the other two. Confirme
 
 **`states_unconfirmed` never reaches the States defined line.** The other two both assert something — "this state is defined", "defined, under this name". A state you merely suspect asserts neither, and filing it with them prints a guess as a fact, which is the one thing this skill must never do. It routes to `Needs Answer` 🟡 as a question — "the 회선 카드 component has a `Disabled` variant; is it used on this screen?" — and to Extraction notes.
 
-`leaves_flow` takes `true`, `false`, or `unknown`. It marks an action that ends this feature — the user lands somewhere this spec does not cover. It changes what back means, where they resume, and whether they come back at all, so it is a product question and it belongs here. **How** the app gets there — an in-app route, a webview URL, a bridge call — is not: that is decided by the codebase, not by the design, and a spec that guesses at it is guessing. Leave it `unknown` unless the file says; an element that changes state in place takes neither `next` nor `leaves_flow`.
+`leaves_flow` takes `true`, `false`, or `unknown`. It marks an action that ends this feature — the user lands somewhere this spec does not cover. It changes what back means, where they resume, and whether they come back at all, so it is a product question and it belongs here. **How** the app gets there — an in-app route, a webview URL, a bridge call — is not: that is decided by the codebase, not by the design, and a spec that guesses at it is guessing. Leave it `unknown` unless the file says; an element that changes state in place takes neither `next` nor `leaves_flow`. `next` still names a frame in this file, so a leaving action usually carries `next: "not defined"` alongside `leaves_flow: true` — "we know it goes out, we do not know where" is a real and common state, and a useful thing to have said.
 
 `traits` takes **only** these values, and marks what *kind* of screen this is:
 
@@ -283,6 +283,7 @@ Do not decide from the prose which sections apply. **Look them up.** Each screen
 
 - `states_defined` → § 1, diffed against the fixed vocabulary
 - `traits` → § 2, 3, 6, 7, 9, 10, 11, per the table at the top of the checklist
+- `leaves_flow: true` or `unknown` → § 5's last item. Every action that ends the feature needs a destination and a return path, and `unknown` on a button that plainly goes somewhere is itself the question
 - § 4 and § 5 apply to every screen; § 8 applies to the feature as a whole, once
 
 A section reached this way gets worked through. A section no screen selects gets skipped, and that is the whole judgment call — there is no third option where a section looked irrelevant.
@@ -386,6 +387,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ## Extraction notes
 {Where grouping rested on weak evidence, frames that could not be read, values assumed to be dummy}
 ```
+
+An action that ends the feature says so in **Next screen** — `Leaves this feature — 약관 전문 (external)`, or `Leaves this feature — ?` when the file does not say where. No extra column: what the reader needs is that the flow stops here, and that fits where the destination already goes.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 
