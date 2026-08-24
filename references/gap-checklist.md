@@ -62,7 +62,6 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Validation rules (length, format, range)
 - [ ] Error message wording and where it appears
 - [ ] When validation fires (as you type / on blur / on submit)
-- [ ] Button state while submitting, and double-submit prevention
 - [ ] Warning on leaving mid-edit, or draft saving
 - [ ] Keyboard type, autocomplete, input masks
 
