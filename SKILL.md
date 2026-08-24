@@ -230,6 +230,19 @@ default · loading · empty · error · unauthorized · maintenance · first_vis
 
 That list is the one `references/gap-checklist.md` § 1 checks against, so Step 4 diffs it mechanically. Anything outside it — `카드 선택됨`, `[다음] 활성` — goes in `states_other` and is not diffed. Put a screen-specific state in `states_defined` and the gap analysis silently stops working.
 
+**A user segment is never one of these values.** This is the most common way the vocabulary gets misused, and it is easy to do because the words nearly fit:
+
+| The file shows | Not this | It is a |
+|---|---|---|
+| `준회원` | `empty` | segment → `shown_when` |
+| `법인회원` | `unauthorized` | segment → `shown_when` |
+| `일시정지` | `error` | contract status → `shown_when` |
+| `알뜰폰` | `unauthorized` | product type → `shown_when` |
+
+Membership grade, contract status, product type, tier — these say *who is looking*, not *what went wrong*. `unauthorized` is a screen that refuses access, not a screen that shows a different thing. A segment goes to `shown_when` and surfaces in **Who sees what**; calling it a state tells the reader the designer defined an error case nobody drew.
+
+The pull toward this mistake is real: the variant rule above pushes you to promote anything state-shaped into `states_defined`, and there is no matching pressure in the other direction. This table is that pressure. When a candidate is a kind of person rather than a kind of moment, it is not a state.
+
 The split exists for the diff, not for the reader. In the final document `states_defined` and `states_other` collapse back into one **States defined** line.
 
 **A state drawn as a component variant is still a defined state.** Modern files define `error`, `empty`, and `loading` inside variant sets far more often than as separate frames — a `State=Error` variant, an `Empty` variant of a list component. Map those onto the fixed vocabulary and put them in `states_defined`, keeping the original name in `states_other`:
@@ -326,15 +339,29 @@ The order is skeleton, then table, then mockup — and the middle step is still 
 
 Carry what the table says into `spec_notes`, quoted rather than paraphrased. Anything it answers is **defined**: it goes in the spec body and must not reappear in `Needs Answer`.
 
+**Boards contradict each other, not just themselves.** One board declares a list — "적용 콘텐츠 5종" — and another enumerates the items and shows two. Both statements get transcribed, both look authoritative, and the spec ships with a number that is wrong. This is a merge-time check and Step 4 does it; note the declaration here so it is available to compare against.
+
 Where the table and the mockup disagree, neither wins silently. Record both and raise it — a table saying "결합 회선은 미노출" against a mockup drawing the block is a real question for the author, and often the most valuable thing in the extraction.
 
 **Pull a screenshot only when you need to see it.** That means layer names are meaningless or the structure is ambiguous. Screenshotting every frame wastes tokens.
 
 Describe repeated components (list items and the like) once, and note that they repeat.
 
+### Step 3.5: Ask each batch three questions
+
+Send every batch back once with three questions and nothing else. This is the only place in the workflow that spends a turn to buy accuracy, and it is spent here because these three mistakes were made by every extraction pass that was measured — not occasionally, but by all of them, working from the same instructions the batch already had. More instruction does not fix what instruction failed at; a narrow question that is not competing with twenty others does.
+
+1. **For each state you listed in `states_defined` — is it actually drawn, as a frame or as a variant?** Point at where.
+2. **Is any of them really a user segment?** `준회원`, `법인회원`, `일시정지`, `알뜰폰` are not `empty`, `unauthorized`, or `error`. Move any that are to `shown_when`.
+3. **On a `composed` screen — is per-block failure defined anywhere, or did you infer it?**
+
+Take back only corrections. A batch that answers "no changes" costs one short turn; the one that does not has just saved a wrong claim from reaching the document, and a wrong claim in `Needs Answer` costs the credibility of every other line in it.
+
 ### Step 4: Merge and find the gaps
 
 After merging the batch results, read `references/gap-checklist.md`. That file only needs to be read at this step.
+
+**Cross-check the boards against each other before diffing any of them.** Merging is the only moment anything sees all the boards at once, so it is the only moment a contradiction between two of them can be caught. Where one board declares a count or a list and another enumerates it, compare them. Where two boards describe the same card, screen, or rule, compare what they say. A disagreement is not a thing to average out or to quietly pick a side on: record both, quote both boards, and raise it 🔴 — the file itself does not know which is right, and neither do you.
 
 **Diff only `kind: screen` boards.** A flowchart has no loading state and a chapter cover has no data fields, so running the screen diffs over them manufactures questions that cannot be answered and should never have been asked — "the flowchart does not define an error state" is the same failure as reporting a variant-drawn state as missing, and it is easier to produce by accident. On a `definition` board the absent fields are absent by nature, not by omission. What a definition board *can* be short of is its own content: a matrix with `complete: false`, or a `defines` line you could not fill.
 
