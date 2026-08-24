@@ -24,6 +24,8 @@ Work through every section a screen selects. A section nothing selects is skippe
 
 Within a selected section, still skip individual items that plainly cannot apply. The section-level choice is the lookup; the item-level one is yours.
 
+**Terms are collected, never defined.** If the extraction carries a domain word with no definition attached, that is a gap and it belongs in `Needs Answer` — a blocker when the word decides a branch. Writing a plausible definition yourself is the same failure as inventing a state.
+
 **Check `spec_notes` before asking anything.** A storyboard frame's description table often answers checklist items outright. An item it answers is not a gap — record the answer in the spec body and move on. Asking the file's author what the file already says is the fastest way to lose them.
 
 **Anything added to this file later hangs off a trait too.** § 1, 4 and 5 fire on every screen, so an item put there is an item every screen pays for; a rate-limit question on a confirmation screen is the noise this whole mechanism exists to prevent. A new concern gets a new trait and its own section, not a few more lines in § 1.
@@ -75,6 +77,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 
 ## 4. Data
 
+- [ ] The raw value behind any number the screen computes with — its type, unit, and precision. Figma only ever shows the rendered string
 - [ ] What shows when a value is null or empty
 - [ ] Number formatting — thousands separators, decimals, currency symbol placement
 - [ ] Date formatting, and the threshold for relative time ("3 minutes ago")
@@ -86,6 +89,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 ## 5. Flow and navigation
 
 - [ ] Every path that leads into this screen
+- [ ] Who is allowed to see it once they get there, and what a user who is not sees instead
 - [ ] Back behavior — especially from a completion screen
 - [ ] Where the user resumes after leaving mid-flow
 - [ ] Whether deep-link entry is allowed

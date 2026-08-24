@@ -180,6 +180,8 @@ Per frame, extract:
 - Real copy vs. dummy text (mark `Lorem ipsum`, `홍길동`, `Enter text here` as dummy)
 - States the screen defines — including any drawn as a component variant, and separately any you suspect but could not confirm
 - What kind of screen it is (`traits`), which is what selects the checklist sections in Step 4
+- Who this screen is for and when it appears (`shown_when`) — a condition, not a route
+- Domain words it uses (`terms`) and full sentences shown to the user (`copy`)
 - Whatever the frame's description table says, if it has one — quoted, and read before the mockup
 - Conditional elements (hidden layers, badges, tooltips)
 
@@ -203,6 +205,9 @@ Per frame, extract:
   states_unconfirmed: ["..."]    # suspected but not verified — never printed as defined
   traits: [list, form]           # fixed vocabulary, below
   conditional: ["..."]           # hidden layers, badges, tooltips
+  shown_when: "..."              # who sees this screen and when — "not defined" if the file never says
+  terms: ["준회원", "결합"]        # domain words this screen uses, exactly as written
+  copy: ["해지 시 남은 혜택이 사라집니다"]   # sentences shown to the user, quoted whole
   spec_notes: ["..."]            # quoted from the frame's description table, if it has one
   repeats: "회선 카드 ×3, same structure"
   evidence: strong               # weak = layer names meaningless, read off the screenshot
@@ -255,6 +260,14 @@ list · form · submit · money · permission · external · native · composed
 
 Like `states_defined`, this exists so Step 4 can look sections up instead of judging them. `references/gap-checklist.md` § 2, 3, 6, 7, 9, 10 and 11 each hang off one of these, so a missing trait means a whole checklist section is silently skipped for that screen. Mark a trait when it plausibly applies — a false `list` costs one question the user skips, a missing one costs a section nobody notices was never asked.
 
+`shown_when` is the screen's entry *condition*, not its entry *path*. § 5 asks which screens lead here; this asks who is allowed to see it at all — logged out, an 준회원 account, a suspended line, a first visit. A file that draws five near-identical screens named `main_03_1` … `main_03_5` is drawing one screen with five conditions, and a spec that lists them as five screens has thrown the condition away — the one thing a developer needs. Read the condition off the frame name, the description table, or the differences between the frames, and write `not defined` when none of those say.
+
+`terms` collects the domain words the screen uses — `준회원`, `일시정지`, `결합`, `대표회선`, `당겨쓰기`. Take the word exactly as written and do not translate or gloss it. You are collecting the vocabulary, not defining it: a definition that is not in the file is not yours to write.
+
+**A word can be both a term and a field label, and that is fine — the two ask different questions.** `회선번호` is a field and nothing else: you need to know where the value comes from. `위약금` is a field *and* a term: you need to know where the value comes from **and** what the word means, and the second is not answered by the first. Put a label in `terms` when a developer who did not know the word would build it wrong. Leave out labels that are self-evident from the value beside them.
+
+`copy` is the sentences the product says to the user, quoted whole and unedited — guidance text, warnings, empty-state lines, error messages, confirmations. Not labels and not data values; those are already in `data_fields` and `actions`. Mark dummy copy the same way you mark dummy data.
+
 Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` entry is exactly what Step 4 is hunting for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
 
 **On the MCP route this takes two calls per frame, minimum.** `get_metadata` gives you the skeleton — which text nodes exist, where, nested how. It does not give you a single character of what they say, so **Data fields displayed** and copy-vs-dummy cannot be filled from it. Call `get_design_context` on the frame for the actual strings.
@@ -285,6 +298,14 @@ Do not decide from the prose which sections apply. **Look them up.** Each screen
 - `traits` → § 2, 3, 6, 7, 9, 10, 11, per the table at the top of the checklist
 - `leaves_flow: true` or `unknown` → § 5's last item. Every action that ends the feature needs a destination and a return path, and `unknown` on a button that plainly goes somewhere is itself the question
 - § 4 and § 5 apply to every screen; § 8 applies to the feature as a whole, once
+
+Three more fields are diffed the same mechanical way, and each produces questions on its own:
+
+- **`shown_when: not defined`** → ask it. A screen nobody can say who sees is a screen nobody can build the guard for. Two frames that differ only by condition and neither says which — 🔴
+- **A `terms` entry with no definition** anywhere in the extraction → ask it. 🔴 when the term decides a branch (`준회원`, `일시정지`), 🟢 when it is only a label
+- **A `data_fields` entry the screen computes with** — a gauge, a percentage, a threshold, an increase — where only the rendered string was extracted → ask for the raw value's type and unit. 🔴, because the API contract is designed off this document
+
+Deduplicate these like everything else: one 준회원 question, not one per screen.
 
 A section reached this way gets worked through. A section no screen selects gets skipped, and that is the whole judgment call — there is no third option where a section looked irrelevant.
 
@@ -346,6 +367,7 @@ The ⚠️ line below is written for a file of screens. When the file is a story
 
 ### 1. {Screen name} `{node-id}`
 **Purpose**: {one line}
+**Shown when**: {condition — omit the line when no screen in the feature states one}
 
 **Data displayed**
 | Field | Sample value | Note |
@@ -363,13 +385,49 @@ The ⚠️ line below is written for a file of screens. When the file is a story
 **States defined**: default, loading
 **States not defined**: error, empty
 
+## Who sees what
+One row per condition, not per screen. Collapses the near-identical frames a file uses to draw one screen in several states.
+
+| Condition | Screens | What differs |
+|---|---|---|
+| Logged out | 1 | Login prompt instead of the line list |
+| 준회원 | 1, 2 | 해지명세서 shown, 위약금 hidden |
+| Not defined | 3, 4 | — |
+
+## Glossary
+Domain words the design uses. **Definitions are not extracted** — a word with no definition in the file goes to `Needs Answer`, because a developer who guesses at it names the code wrong.
+
+| Term | Where it appears | Definition |
+|---|---|---|
+| 준회원 | Screens 1, 2 | Not defined — see Needs Answer |
+| 결합 | Screen 2 | "2회선 이상 묶음 할인" (from the description table) |
+
 ## Data requirements
 Every data field across all screens, deduplicated. The list to check against the backend.
 
-| Field | Screen | Note |
+**Figma shows the rendered string, never the value behind it.** `25GB` and `4,930원` are display, and a spec that carries only display gets an API that returns strings and a client that parses them back with a regex. Where the screen does arithmetic on a value — a gauge, a percentage, a threshold, an increase — the raw value has to exist, so ask for it. **Never invent a field name**: the design does not contain one, and a developer will search for whatever you write.
+
+| Field | Displayed as | Raw value needed | Screen | Note |
+|---|---|---|---|---|
+| 회선번호 | 010-1234-5678 | — | 1 | |
+| 잔여 데이터 | 25GB | Yes — 80% gauge | 2 | Type and unit not defined |
+| 위약금 | 42,000원 | Yes — summed | 2 | Calculation unconfirmed |
+
+## Copy
+Every sentence the product says to the user, deduplicated. The list to hand to whoever reviews wording.
+
+| Text | Screen | Note |
 |---|---|---|
-| 회선번호 | 1 | |
-| 위약금 | 2 | calculation unconfirmed |
+| 해지 시 남은 혜택이 사라집니다 | 2 | |
+| 내용을 입력해 주세요 | 3 | placeholder, likely dummy |
+
+## Destinations
+Every place an action sends the user, deduplicated — the counterpart of Data requirements for navigation. Scattered destinations are the ones that get missed.
+
+| Destination | From | Leaves this feature |
+|---|---|---|
+| Screen 2 | [다음] on 1 | No |
+| Not defined | `←` on 1, 2, 3 | ? |
 
 ## Needs Answer
 
@@ -389,6 +447,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ```
 
 An action that ends the feature says so in **Next screen** — `Leaves this feature — 약관 전문 (external)`, or `Leaves this feature — ?` when the file does not say where. No extra column: what the reader needs is that the flow stops here, and that fits where the destination already goes.
+
+**Shown when** appears per screen only where it says something. When no screen in the feature states a condition, drop the line from every screen and say it once in **Who sees what** — four screens each repeating "Not defined" is the repetition the dedupe rule exists to stop, and it buries the one screen that *does* carry a condition when there is one.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 
@@ -419,6 +479,8 @@ The sentence around it follows the request language. What sits inside the quotes
 
 - Request an entire node tree at once (context explosion)
 - Guess at states that were never drawn
+- Write a definition for a term the file never defines
+- Invent an API field name — the design has none, and the reader will search for whatever you write
 - Read a storyboard's phone mockup and skip the description table beside it
 - Call a state undefined without checking whether it exists as a component variant
 - Ask the same question once per screen instead of listing the screens on one line
