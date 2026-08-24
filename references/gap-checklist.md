@@ -46,6 +46,8 @@ Applies to nearly every screen. The most common omission by far.
 
 Diff the fixed vocabulary against `states_defined`, and **trust that field over your own reading of the screen.** A state drawn as a component variant is defined even though no separate frame exists for it; Step 3 is responsible for having caught that. Reporting a state as missing when the designer drew it is worse than missing one — it costs the reader's trust in every other item here.
 
+**A user segment is not a state.** Membership grade, contract status, product type, tier — `준회원`, `법인회원`, `일시정지`, `알뜰폰` — are *who the viewer is*, and a screen that shows them different content is not a screen in an error state. `unauthorized` is for a screen that refuses access, never for one that shows something else instead. Segments belong to `shown_when` and to **Who sees what**; mapping them onto this vocabulary is how a spec ends up claiming the designer defined an error state nobody drew.
+
 These are whole-screen states. If the screen is `composed`, its blocks fail one at a time and § 11 asks about that — do not stretch the items below to cover it.
 
 Anything in `states_unconfirmed` is neither defined nor missing. Raise it here as a 🟡 question — "the list component has an `Empty` variant; is it used on this screen?" — and keep it out of the **States defined** line.
@@ -53,7 +55,7 @@ Anything in `states_unconfirmed` is neither defined nor missing. Raise it here a
 - [ ] Loading — skeleton or spinner, whole screen or partial
 - [ ] Empty — when the list has zero items
 - [ ] Error — server failure, network loss
-- [ ] Unauthorized — not logged in, not the account owner, insufficient tier
+- [ ] Unauthorized — access is refused: not logged in, not the owner of this account
 - [ ] Under maintenance / outside service hours
 - [ ] First visit vs. return visit
 
