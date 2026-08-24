@@ -2,18 +2,41 @@
 
 Read this at step 4 only. Check the extracted screens against the items below, and send anything Figma never defined to `Needs Answer`.
 
-Do not mechanically list every item. **Pick only what actually applies to the screen in front of you.** Attaching a pagination question to a static information page is noise.
+## Which sections apply
 
-How to prioritize:
+Not every section applies to every screen — attaching a pagination question to a static information page is noise. But do not judge that from the prose. Each screen's Step 3 record already says which sections it selects:
+
+| Section | Selected by |
+|---|---|
+| 1. Screen states | `states_defined` — diff against the fixed vocabulary |
+| 2. Lists and tables | `traits: list` |
+| 3. Forms and input | `traits: form` or `traits: submit` |
+| 4. Data | every screen |
+| 5. Flow and navigation | every screen |
+| 6. Permissions and auth | `traits: permission` |
+| 7. Business rules | `traits: submit` or `traits: money` |
+| 8. Platform | every screen — usually once for the whole feature, not per screen |
+| 9. External integrations | `traits: external` |
+
+Work through every section a screen selects. A section nothing selects is skipped. If a screen's record has no `traits` key at all, that is a Step 3 omission, not a screen with no traits — infer the traits from its `data_fields` and `actions` before continuing, and note it in Extraction notes.
+
+Within a selected section, still skip individual items that plainly cannot apply. The section-level choice is the lookup; the item-level one is yours.
+
+## How to prioritize
+
 - 🔴 **Blocker** — no answer, no code (branch conditions, where required data comes from)
 - 🟡 **Edge case** — you will hit it during implementation (errors, empty states)
 - 🟢 **Worth confirming** — fine to fix later (long text, accessibility)
 
+Keep 🔴 to roughly seven. And **one question, one entry** — when the same question falls out of five screens, list the screens on a single line rather than repeating it five times. See Step 4.
+
 ---
 
-## 1. Screen states
+## 1. Screen states  —  diff of `states_defined`
 
 Applies to nearly every screen. The most common omission by far.
+
+Diff the fixed vocabulary against `states_defined`, and **trust that field over your own reading of the screen.** A state drawn as a component variant is defined even though no separate frame exists for it; Step 3 is responsible for having caught that. Reporting a state as missing when the designer drew it is worse than missing one — it costs the reader's trust in every other item here.
 
 - [ ] Loading — skeleton or spinner, whole screen or partial
 - [ ] Empty — when the list has zero items
@@ -22,7 +45,7 @@ Applies to nearly every screen. The most common omission by far.
 - [ ] Under maintenance / outside service hours
 - [ ] First visit vs. return visit
 
-## 2. Lists and tables
+## 2. Lists and tables  —  `traits: list`
 
 - [ ] Pagination style (load more / infinite scroll / page numbers)
 - [ ] How many per fetch
@@ -31,7 +54,7 @@ Applies to nearly every screen. The most common omission by far.
 - [ ] Upper bound on list length
 - [ ] Pull to refresh
 
-## 3. Forms and input
+## 3. Forms and input  —  `traits: form` · `submit`
 
 - [ ] Required vs. optional
 - [ ] Validation rules (length, format, range)
@@ -60,14 +83,14 @@ Applies to nearly every screen. The most common omission by far.
 - [ ] Where the user lands after success
 - [ ] Cancel and close behavior (does it need a confirmation modal)
 
-## 6. Permissions and auth
+## 6. Permissions and auth  —  `traits: permission`
 
 - [ ] Access while logged out
 - [ ] Session expiry
 - [ ] Whether identity verification is required, and at what point
 - [ ] Screen differences by role
 
-## 7. Business rules
+## 7. Business rules  —  `traits: submit` · `money`
 
 The area most often missing wholesale from a spec. You can never learn it from the screens alone.
 
@@ -85,7 +108,7 @@ The area most often missing wholesale from a spec. You can never learn it from t
 - [ ] Dark mode
 - [ ] Accessibility — screen reader labels, anything conveyed by color alone
 
-## 9. External integrations
+## 9. External integrations  —  `traits: external`
 
 - [ ] Returning from an external app
 - [ ] Payment or auth abandoned midway

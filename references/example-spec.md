@@ -9,6 +9,8 @@ Two things to take from it, beyond the layout:
 
 The Needs Answer section is the long one here. That is deliberate, and typical.
 
+**SKILL.md holds the canonical template.** This file is one filled-in instance of it, kept here to make the shape concrete. If the two ever disagree, SKILL.md wins — and the disagreement is a bug worth fixing.
+
 ---
 
 # 회선 해지
