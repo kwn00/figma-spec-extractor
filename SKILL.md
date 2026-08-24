@@ -264,6 +264,8 @@ Like `states_defined`, this exists so Step 4 can look sections up instead of jud
 
 `terms` collects the domain words the screen uses — `준회원`, `일시정지`, `결합`, `대표회선`, `당겨쓰기`. Take the word exactly as written and do not translate or gloss it. You are collecting the vocabulary, not defining it: a definition that is not in the file is not yours to write.
 
+**A word can be both a term and a field label, and that is fine — the two ask different questions.** `회선번호` is a field and nothing else: you need to know where the value comes from. `위약금` is a field *and* a term: you need to know where the value comes from **and** what the word means, and the second is not answered by the first. Put a label in `terms` when a developer who did not know the word would build it wrong. Leave out labels that are self-evident from the value beside them.
+
 `copy` is the sentences the product says to the user, quoted whole and unedited — guidance text, warnings, empty-state lines, error messages, confirmations. Not labels and not data values; those are already in `data_fields` and `actions`. Mark dummy copy the same way you mark dummy data.
 
 Drop a key only when it has nothing in it. Do not fill one to look complete — a missing `states_defined` entry is exactly what Step 4 is hunting for. Every `evidence: weak` and every `unread` has to reach Extraction notes.
@@ -365,7 +367,7 @@ The ⚠️ line below is written for a file of screens. When the file is a story
 
 ### 1. {Screen name} `{node-id}`
 **Purpose**: {one line}
-**Shown when**: {condition, or "Not defined"}
+**Shown when**: {condition — omit the line when no screen in the feature states one}
 
 **Data displayed**
 | Field | Sample value | Note |
@@ -445,6 +447,8 @@ Questions for the product owner and designer. Ordered by what must be answered b
 ```
 
 An action that ends the feature says so in **Next screen** — `Leaves this feature — 약관 전문 (external)`, or `Leaves this feature — ?` when the file does not say where. No extra column: what the reader needs is that the flow stops here, and that fits where the destination already goes.
+
+**Shown when** appears per screen only where it says something. When no screen in the feature states a condition, drop the line from every screen and say it once in **Who sees what** — four screens each repeating "Not defined" is the repetition the dedupe rule exists to stop, and it buries the one screen that *does* carry a condition when there is one.
 
 **States not defined** lists only what the diff found missing. A state you suspected but could not confirm belongs in neither line — it is a question, so it goes to `Needs Answer` and to Extraction notes. Putting it under "not defined" asserts it is absent, which is the same guess in the other direction.
 

@@ -40,7 +40,6 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 ### 1. 해지_01_회선선택 `45:678`
 
 **목적**: 보유 회선 중 해지할 회선을 하나 고른다.
-**노출 조건**: 정의 안 됨 — 마이페이지 진입 경로만 있고 자격 조건은 어디에도 없다
 
 **표시 데이터**
 
@@ -66,7 +65,6 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 ### 2. 해지_02_약관 `45:912`
 
 **목적**: 해지 조건과 정산 금액을 안내하고 동의를 받는다.
-**노출 조건**: 정의 안 됨
 
 **표시 데이터**
 
@@ -91,7 +89,6 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 ### 3. 해지_03_사유 `45:1104`
 
 **목적**: 해지 사유를 수집한다.
-**노출 조건**: 정의 안 됨
 
 **표시 데이터**
 
@@ -115,7 +112,6 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 ### 4. 해지_04_완료 `45:1288`
 
 **목적**: 해지 접수 완료를 알린다.
-**노출 조건**: 정의 안 됨
 
 **표시 데이터**
 
@@ -144,6 +140,8 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 ## 용어
 
 디자인이 쓰는 도메인 용어. **정의는 추출하지 않는다** — 파일에 정의가 없으면 확인 필요로 넘긴다.
+
+아래 넷은 데이터 요구사항에도 있는 필드다. 겹쳐도 된다 — 거기서는 "값이 어디서 오나"를, 여기서는 "이 말이 무슨 뜻인가"를 묻는다. `회선번호`는 뜻을 몰라 틀릴 일이 없어 여기 없다.
 
 | 용어 | 등장 화면 | 정의 |
 |---|---|---|
@@ -176,11 +174,11 @@ The Needs Answer section is the long one here. That is deliberate, and typical.
 
 사용자에게 보이는 문장, 중복 제거. 문구 검수용 목록.
 
-| 문구 | 화면 | 비고 |
-|---|---|---|
-| 내용을 입력해 주세요 | 3 | placeholder, 더미로 추정 |
+정의 안 됨.
 
-이 파일에는 안내·경고·에러 문구가 그려져 있지 않다. 빈 것 자체가 정보다 — 해지처럼 되돌릴 수 없는 플로우에 경고 문구가 하나도 없다.
+이 파일에 그려진 문자열은 필드 라벨, 데이터 값, 버튼 이름뿐이고 제품이 사용자에게 건네는 문장은 하나도 없다. `내용을 입력해 주세요`는 입력란 placeholder라 데이터 요구사항에 있지 여기 오지 않는다.
+
+빈 것 자체가 정보다 — 해지처럼 되돌릴 수 없는 플로우에 경고 문구가 한 줄도 없다.
 
 ## 이동 경로
 
